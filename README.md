@@ -5,7 +5,7 @@ Setup:
 git clone <ссылка_на_репозиторий>
 cd CheckMindFlask/
 python -m venv venv
-activate
+source venv/bin/activate
 pip install -r requirements.txt
 deactivate
 ```
