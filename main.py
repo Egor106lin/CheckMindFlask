@@ -1,8 +1,58 @@
-from flask import Flask, request, jsonify
+import requests
+
+from flask import Flask, request, jsonify, Response
+from aiohttp import ClientSession
+
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+
+from models import UserModel, TestModel, UserGroupModel
+
+from service.db_init import db
+from service.generate_links import generate_google_url
+from service.config import settings
+from service.jwt_decoder import jwt_decode
+from service.create_user import create_user
 #from flask_cors import CORS
+
 import json
 
 app = Flask(__name__)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db.init_app(app)
+migrate = Migrate(app, db)
+with app.app_context():
+    db.create_all()
+
+
+@app.route('/url/google', methods=['GET'])
+def get_url_google():
+    url = jsonify(generate_google_url())
+    return url
+
+
+@app.route('/auth/google', methods=['GET'])
+async def auth_google():
+    data = {
+        'client_id': settings.GOOGLE_CLIENT_ID,
+        'client_secret': settings.GOOGLE_CLIENT_SECRET,
+        'code': request.values['code'],
+        'grant_type': 'authorization_code',
+        'redirect_uri': 'http://localhost:5000/auth/google'
+    }
+    response = requests.post(
+        url="https://oauth2.googleapis.com/token",
+        data=data
+    )
+    res = response.json()
+    user_data = jwt_decode(res['id_token'])
+    print(user_data)
+    create_user(user_data, 'google')
+    return '1'
+
 
 @app.route('/tests/created_test', methods=['POST'])
 def test_created_test():
@@ -44,7 +94,6 @@ def test_questions_and_options():
 @app.route('/tests/check_answers', methods=['POST'])
 def test_check_answers():
     try:
-
         return jsonify({
             "status": "success", 
             "message": "Данные успешно получены",
@@ -62,7 +111,14 @@ def test_check_answers():
 @app.route('/groups/get_list', methods=['GET'])
 def groups_get_list():
     try:
-
+        users = UserModel.query.all()
+        for user in users:
+            print(f"\nID: {user.id}")
+            print(f"Имя: {user.name}")
+            print(f"Email: {user.email}")
+            print(f"Провайдер: {user.provider}")
+            print(f"Группы: {user.groups}")
+            print(f"Аватар: {user.avatar_url}")
         return jsonify({
             "status": "success", 
             "message": "Данные успешно отправлены",
