@@ -9,6 +9,7 @@ def generate_google_url() -> str:
         "response_type": "code",
         "scope": "openid profile email",
         "access_type": "offline",
+        "prompt": "consent"
     }
     query_string = parse.urlencode(query_params, quote_via=parse.quote)
     base_url = "https://accounts.google.com/o/oauth2/v2/auth"

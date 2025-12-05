@@ -9,9 +9,9 @@ def create_user(data: dict, provider: str):
         avatar_url=data.get('picture'),
         provider=provider,
         groups=[],
-        access_token=None,
-        refresh_token=None,
-        token_expiry=None
+        access_token=data['access_token'],
+        refresh_token=data['refresh_token'],
+        token_expiry=data['token_expiry']
     )
     db.session.add(user)
     db.session.commit()

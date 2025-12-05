@@ -1,6 +1,7 @@
 import requests
+from functools import wraps
 
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, Response, abort
 from aiohttp import ClientSession
 
 from flask_sqlalchemy import SQLAlchemy
@@ -28,6 +29,24 @@ with app.app_context():
     db.create_all()
 
 
+def login_required(access_token=None):
+    def decorator(function):
+        @wraps(function)
+        def decorated_function(*args, **kwargs):
+            try:
+                user = UserModel.query.filter_by(access_token=access_token).all()[0]
+                if user:
+                    pass
+                else:
+                    # переписать access токен на свежий
+                    pass
+            except Exception as e:
+                return abort(401)
+            return function(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
 @app.route('/url/google', methods=['GET'])
 def get_url_google():
     url = jsonify(generate_google_url())
@@ -49,7 +68,9 @@ async def auth_google():
     )
     res = response.json()
     user_data = jwt_decode(res['id_token'])
-    print(user_data)
+    user_data['access_token'] = res['access_token']
+    user_data['token_expiry'] = res['expires_in']
+    user_data['refresh_token'] = res['refresh_token']
     create_user(user_data, 'google')
     return '1'
 
@@ -109,6 +130,7 @@ def test_check_answers():
     
 
 @app.route('/groups/get_list', methods=['GET'])
+@login_required(access_token='a')
 def groups_get_list():
     try:
         users = UserModel.query.all()
@@ -119,6 +141,9 @@ def groups_get_list():
             print(f"Провайдер: {user.provider}")
             print(f"Группы: {user.groups}")
             print(f"Аватар: {user.avatar_url}")
+            print(f"Access token: {user.access_token}")
+            print(f"Token expiry: {user.token_expiry}")
+            print(f"Refresh token: {user.refresh_token}")
         return jsonify({
             "status": "success", 
             "message": "Данные успешно отправлены",
@@ -132,6 +157,12 @@ def groups_get_list():
             "message": str(e)
         }), 400
     
+
+@app.route('/profile/user_data', methods=['GET'])
+def profile_user_data():
+    pass
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
