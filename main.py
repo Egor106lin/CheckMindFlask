@@ -1,19 +1,21 @@
 import requests
 from functools import wraps
 
-from flask import Flask, request, jsonify, Response, abort
+from flask import Flask, request, jsonify, Response, abort, redirect
 from aiohttp import ClientSession
 
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
 from models import UserModel, TestModel, UserGroupModel
+from user_manager import User
 
 from service.db_init import db
 from service.generate_links import generate_google_url
 from service.config import settings
 from service.jwt_decoder import jwt_decode
 from service.create_user import create_user
+from service.update_access_token import update_access_token
 #from flask_cors import CORS
 
 import json
@@ -29,17 +31,17 @@ with app.app_context():
     db.create_all()
 
 
-def login_required(access_token=None):
+def login_required():
     def decorator(function):
         @wraps(function)
         def decorated_function(*args, **kwargs):
             try:
-                user = UserModel.query.filter_by(access_token=access_token).all()[0]
+                access_token = request.cookies.get('access_token')
+                user = UserModel.query.filter(UserModel.access_token == str(access_token)).first()
                 if user:
-                    pass
+                    update_access_token(user.access_token, user.refresh_token)
                 else:
-                    # переписать access токен на свежий
-                    pass
+                    return abort(401)
             except Exception as e:
                 return abort(401)
             return function(*args, **kwargs)
@@ -47,20 +49,20 @@ def login_required(access_token=None):
     return decorator
 
 
-@app.route('/url/google', methods=['GET'])
+@app.route('/api/url/google', methods=['GET'])
 def get_url_google():
     url = jsonify(generate_google_url())
     return url
 
 
-@app.route('/auth/google', methods=['GET'])
+@app.route('/api/auth/google', methods=['GET'])
 async def auth_google():
     data = {
         'client_id': settings.GOOGLE_CLIENT_ID,
         'client_secret': settings.GOOGLE_CLIENT_SECRET,
         'code': request.values['code'],
         'grant_type': 'authorization_code',
-        'redirect_uri': 'http://localhost:5000/auth/google'
+        'redirect_uri': 'http://localhost:5000/api/auth/google'
     }
     response = requests.post(
         url="https://oauth2.googleapis.com/token",
@@ -72,10 +74,13 @@ async def auth_google():
     user_data['token_expiry'] = res['expires_in']
     user_data['refresh_token'] = res['refresh_token']
     create_user(user_data, 'google')
-    return '1'
+    response = redirect(f'{settings.FRONTEND_URL}/profile')
+    response.set_cookie('access_token', user_data['access_token'], httponly=True)
+    return response
 
 
-@app.route('/tests/created_test', methods=['POST'])
+@app.route('/api/tests/created_test', methods=['POST'])
+@login_required()
 def test_created_test():
     try:
         data = request.get_json()
@@ -95,7 +100,8 @@ def test_created_test():
         }), 400
 
 
-@app.route('/tests/questions_and_options', methods=['GET'])
+@app.route('/api/tests/questions_and_options', methods=['GET'])
+@login_required()
 def test_questions_and_options():
     try:
         return jsonify({
@@ -112,7 +118,8 @@ def test_questions_and_options():
         }), 400
     
 
-@app.route('/tests/check_answers', methods=['POST'])
+@app.route('/api/tests/check_answers', methods=['POST'])
+@login_required()
 def test_check_answers():
     try:
         return jsonify({
@@ -129,8 +136,8 @@ def test_check_answers():
         }), 400
     
 
-@app.route('/groups/get_list', methods=['GET'])
-@login_required(access_token='a')
+@app.route('/api/groups/get_list', methods=['GET'])
+@login_required()
 def groups_get_list():
     try:
         users = UserModel.query.all()
@@ -158,10 +165,15 @@ def groups_get_list():
         }), 400
     
 
-@app.route('/profile/user_data', methods=['GET'])
+@app.route('/api/profile/user_data', methods=['GET'])
+@login_required()
 def profile_user_data():
-    pass
-
+    user_data = User().create_from_token(request.cookies.get('access_token'))
+    return json.dumps({
+        "name": user_data['name'],
+        "provider": user_data['provider'],
+        "avatar_url": user_data['avatar_url']
+    })
 
 
 if __name__ == '__main__':

@@ -5,7 +5,7 @@ def generate_google_url() -> str:
     '''This function generate url to redirect user here after button "google"'''
     query_params = {
         "client_id": settings.GOOGLE_CLIENT_ID,
-        "redirect_uri": "http://localhost:5000/auth/google",
+        "redirect_uri": "http://localhost:5000/api/auth/google",
         "response_type": "code",
         "scope": "openid profile email",
         "access_type": "offline",
