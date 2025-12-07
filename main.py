@@ -1,5 +1,4 @@
 import requests
-from functools import wraps
 
 from flask import Flask, request, jsonify, Response, abort, redirect
 from aiohttp import ClientSession
@@ -16,7 +15,7 @@ from service.config import settings
 from service.jwt_decoder import jwt_decode
 from service.create_user import create_user
 from service.update_access_token import update_access_token
-#from flask_cors import CORS
+from service.login_required import login_required
 
 import json
 
@@ -29,24 +28,6 @@ db.init_app(app)
 migrate = Migrate(app, db)
 with app.app_context():
     db.create_all()
-
-
-def login_required():
-    def decorator(function):
-        @wraps(function)
-        def decorated_function(*args, **kwargs):
-            try:
-                access_token = request.cookies.get('access_token')
-                user = UserModel.query.filter(UserModel.access_token == str(access_token)).first()
-                if user:
-                    update_access_token(user.access_token, user.refresh_token)
-                else:
-                    return abort(401)
-            except Exception as e:
-                return abort(401)
-            return function(*args, **kwargs)
-        return decorated_function
-    return decorator
 
 
 @app.route('/api/url/google', methods=['GET'])
