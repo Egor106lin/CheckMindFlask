@@ -57,26 +57,29 @@ def get_url_google():
 
 @app.route('/api/auth/google', methods=['GET'])
 async def auth_google():
-    data = {
-        'client_id': settings.GOOGLE_CLIENT_ID,
-        'client_secret': settings.GOOGLE_CLIENT_SECRET,
-        'code': request.values['code'],
-        'grant_type': 'authorization_code',
-        'redirect_uri': 'http://localhost:5000/api/auth/google'
-    }
-    response = requests.post(
-        url="https://oauth2.googleapis.com/token",
-        data=data
-    )
-    res = response.json()
-    user_data = jwt_decode(res['id_token'])
-    user_data['access_token'] = res['access_token']
-    user_data['token_expiry'] = res['expires_in']
-    user_data['refresh_token'] = res['refresh_token']
-    create_user(user_data, 'google')
-    response = redirect(f'{settings.FRONTEND_URL}/profile')
-    response.set_cookie('access_token', user_data['access_token'], httponly=True)
-    return response
+    try:
+        data = {
+            'client_id': settings.GOOGLE_CLIENT_ID,
+            'client_secret': settings.GOOGLE_CLIENT_SECRET,
+            'code': request.values['code'],
+            'grant_type': 'authorization_code',
+            'redirect_uri': 'http://localhost:5000/api/auth/google'
+        }
+        response = requests.post(
+            url="https://oauth2.googleapis.com/token",
+            data=data
+        )
+        res = response.json()
+        user_data = jwt_decode(res['id_token'])
+        user_data['access_token'] = res['access_token']
+        user_data['token_expiry'] = res['expires_in']
+        user_data['refresh_token'] = res['refresh_token']
+        create_user(user_data, 'google')
+        response = redirect(f'{settings.FRONTEND_URL}/profile')
+        response.set_cookie('access_token', user_data['access_token'], httponly=True)
+        return response
+    except Exception as e:
+        return abort(500)
 
 
 @app.route('/api/tests/created_test', methods=['POST'])
@@ -172,7 +175,8 @@ def profile_user_data():
     return json.dumps({
         "name": user_data['name'],
         "provider": user_data['provider'],
-        "avatar_url": user_data['avatar_url']
+        "avatar_url": user_data['avatar_url'],
+        "email": user_data['email']
     })
 
 
