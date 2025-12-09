@@ -7,7 +7,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
 from models import UserModel, TestModel, UserGroupModel
-from user_manager import User
+from entities import User
 
 from service.db_init import db
 from service.generate_links import generate_google_url
@@ -60,6 +60,7 @@ async def auth_google():
         response.set_cookie('access_token', user_data['access_token'], httponly=True)
         return response
     except Exception as e:
+        print(e)
         return abort(500)
 
 
@@ -124,17 +125,6 @@ def test_check_answers():
 @login_required()
 def groups_get_list():
     try:
-        users = UserModel.query.all()
-        for user in users:
-            print(f"\nID: {user.id}")
-            print(f"Имя: {user.name}")
-            print(f"Email: {user.email}")
-            print(f"Провайдер: {user.provider}")
-            print(f"Группы: {user.groups}")
-            print(f"Аватар: {user.avatar_url}")
-            print(f"Access token: {user.access_token}")
-            print(f"Token expiry: {user.token_expiry}")
-            print(f"Refresh token: {user.refresh_token}")
         return jsonify({
             "status": "success", 
             "message": "Данные успешно отправлены",
@@ -152,12 +142,14 @@ def groups_get_list():
 @app.route('/api/profile/user_data', methods=['GET'])
 @login_required()
 def profile_user_data():
-    user_data = User().create_from_token(request.cookies.get('access_token'))
+    user_data = User()
+    user_data.create_with_token(request.cookies.get('access_token'))
     return json.dumps({
-        "name": user_data['name'],
-        "provider": user_data['provider'],
-        "avatar_url": user_data['avatar_url'],
-        "email": user_data['email']
+        "name": user_data.name,
+        "provider": user_data.provider,
+        "avatar_url": user_data.avatar_url,
+        "email": user_data.email,
+        "id": user_data.id
     })
 
 
