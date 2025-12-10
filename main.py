@@ -69,7 +69,6 @@ async def auth_google():
 def test_created_test():
     try:
         data = request.get_json()
-        print({type(data)})
         print(json.dumps(data, indent=2, ensure_ascii=False))
         return jsonify({
             "status": "success", 
@@ -151,6 +150,22 @@ def profile_user_data():
         "email": user_data.email,
         "id": user_data.id
     })
+
+
+@app.route('/api/groups/delete', methods=['POST'])
+@login_required()
+def delete_group():
+    user_id = request.get_json()
+    print(user_id)
+    return str(user_id)
+
+
+@app.route('/api/groups/leave', methods=['POST'])
+@login_required()
+def leave_group():
+    user_id = request.get_json()
+    print(user_id)
+    return str(user_id)
 
 
 if __name__ == '__main__':
