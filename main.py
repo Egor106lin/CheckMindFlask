@@ -7,7 +7,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
 from models import UserModel, TestModel, UserGroupModel
-from entities import User
+from entities import User, Group, Test
 
 from service.db_init import db
 from service.generate_links import generate_google_url
@@ -69,7 +69,22 @@ async def auth_google():
 def test_created_test():
     try:
         data = request.get_json()
-        print(json.dumps(data, indent=2, ensure_ascii=False))
+        new_test = Test()
+        new_test.create_new(data)
+        tests = TestModel.query.all()
+
+        # Вывести каждую запись
+        for test in tests:
+            print(f"ID: {test.id}")
+            print(f"Title: {test.title}")
+            print(f"Description: {test.description}")
+            print(f"Group IDs: {test.group_ids}")
+            print(f"Is Visible: {test.is_visible}")
+            print(f"Questions: {test.questions}")
+            print(f"Correct Answers: {test.correct_answers}")
+            print(f"Users Max Score: {test.users_max_score}")
+            print(f"Users Attempts: {test.users_attempts}")
+            print("-" * 50)
         return jsonify({
             "status": "success", 
             "message": "Данные успешно получены",
@@ -91,7 +106,7 @@ def test_questions_and_options():
         return jsonify({
             "status": "success", 
             "message": "Данные успешно отправлены",
-            "data": '{"groupID": "123456789","questionsQuantity": 5,"testName": "Тест для отладки","testDescription": "Тест для проверки работы сайта","questionsAndOptions": [{"question": "1","options": [{"title": "1","correct": true},{"title": "2","correct": false}]},{"question": "2","options": [{"title": "1","correct": true},{"title": "2","correct": false},{"title": "3","correct": true},{"title": "4","correct": false}]},{"question": "3","options": [{"title": "1","correct": true},{"title": "3","correct": false},{"title": "4","correct": false},{"title": "6","correct": false},{"title": "2","correct": true},{"title": "70","correct": false},{"title": "ответ","correct": false}]},{"question": "4","options": [{"title": "ответ 1","correct": true},{"title": "ответ 2","correct": true}]},{"question": "5","options": [{"title": "1","correct": false},{"title": "2","correct": true}]}]}'
+            "data": '{"groupID":"123456789","questionsQuantity":5,"testName":"Тест для отладки","testDescription":"Тест для отладки основных функций на фронте","questionsAndOptions":[{"question":"1","options":[{"title":"ответ","correct":false},{"title":"ответ","correct":true},{"title":"вопрос","correct":false}]},{"question":"2","options":[{"title":"3","correct":false},{"title":"2","correct":true}]},{"question":"1","options":[{"title":"4","correct":true},{"title":"7","correct":false}]},{"question":"вопрос 4","options":[{"title":"ответ 1","correct":false},{"title":"ответ 2","correct":true},{"title":"ответ 3","correct":false}]},{"question":"вопрос 5","options":[{"title":"ответ 10","correct":false},{"title":"ответ 17","correct":false},{"title":"ответ 42","correct":false},{"title":"ответ 44","correct":false},{"title":"1","correct":false},{"title":"2","correct":false},{"title":"4","correct":true},{"title":"8","correct":false},{"title":"9","correct":false},{"title":"10","correct":false}]}]}'
         }), 200
         
     except Exception as e:
@@ -120,6 +135,20 @@ def test_check_answers():
         }), 400
     
 
+@app.route('/api/profile/user_data', methods=['GET'])
+@login_required()
+def profile_user_data():
+    user_data = User()
+    user_data.create_with_token(request.cookies.get('access_token'))
+    return json.dumps({
+        "name": user_data.name,
+        "provider": user_data.provider,
+        "avatar_url": user_data.avatar_url,
+        "email": user_data.email,
+        "id": user_data.id
+    })
+
+
 @app.route('/api/groups/get_list', methods=['GET'])
 @login_required()
 def groups_get_list():
@@ -138,34 +167,70 @@ def groups_get_list():
         }), 400
     
 
-@app.route('/api/profile/user_data', methods=['GET'])
+@app.route('/api/groups/get_members', methods=['GET'])
 @login_required()
-def profile_user_data():
-    user_data = User()
-    user_data.create_with_token(request.cookies.get('access_token'))
-    return json.dumps({
-        "name": user_data.name,
-        "provider": user_data.provider,
-        "avatar_url": user_data.avatar_url,
-        "email": user_data.email,
-        "id": user_data.id
-    })
-
+def groups_get_members():
+    try:
+        print(request.args.get('params[groupID]'))
+        return jsonify({
+            "status": "success", 
+            "message": "Данные успешно отправлены",
+            "data": '[{"number":1,"owner":"Александр","group_size":15,"name":"Проект","ID":"123456789"},{"number":2,"owner":"Мария","group_size":8,"name":"Группа","ID":"987654321"},{"number":3,"owner":"Иван","group_size":22,"name":"Команда","ID":"456123789"},{"number":4,"owner":"Ольга","group_size":5,"name":"Отдел","ID":"321654987"},{"number":5,"owner":"Дмитрий","group_size":17,"name":"Разработка","ID":"789123456"}]'
+        }), 200
+        
+    except Exception as e:
+        print(f"Ошибка при обработке запроса: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 400
+   
 
 @app.route('/api/groups/delete', methods=['POST'])
 @login_required()
 def delete_group():
+    user = User()
+    group = Group()
+    user.create_with_token(request.cookies.get('access_token'))
+    group.delete_user(user)
     user_id = request.get_json()
-    print(user_id)
-    return str(user_id)
+    return jsonify({
+        "status": "success", 
+        "message": "Группа удалена",
+    }), 200
 
 
 @app.route('/api/groups/leave', methods=['POST'])
 @login_required()
 def leave_group():
     user_id = request.get_json()
-    print(user_id)
-    return str(user_id)
+    print(request.data)
+    return jsonify({
+        "status": "success", 
+        "message": "Группа покинута",
+    }), 200
+
+
+@app.route('/api/groups/create', methods=['POST'])
+@login_required()
+def create_group():
+    data = request.get_json()
+    print(data)
+    return jsonify({
+        "status": "success", 
+        "message": "Группа создана",
+    }), 200
+
+
+@app.route('/api/groups/join', methods=['POST'])
+@login_required()
+def join_group():
+    user_id = request.get_json()
+    print(request.data)
+    return jsonify({
+        "status": "success", 
+        "message": "Вы присоединены к группе",
+    }), 200
 
 
 if __name__ == '__main__':

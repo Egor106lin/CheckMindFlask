@@ -1,8 +1,19 @@
-from models import UserModel
+from models import UserModel, UserGroupModel, TestModel
+from service.db_init import db
+import json
 
 
 class User():
     def __init__(self, user_id=None):
+        self.id = None
+        self.name = None
+        self.groups = None
+        self.email = None
+        self.avatar_url = None
+        self.provider = None
+        self.access_token = None
+        self.refresh_token = None
+        self.token_expiry = None
         if user_id:
             self.create_with_id(user_id)
     
@@ -48,11 +59,15 @@ class Group():
         self.users_limit = None
         self.admins_limit = None
 
-    def add_user(self, id):
-        print(id)
+    def create_with_id(self, id):
+        new_group = UserGroupModel.query.get(id)
+        self.id = id
+        self.users = new_group.users
+
+    def add_user(self, user):
         if self.size <= self.users_limit:
-            # Добавляем юзера
-            pass
+            self.users.append(user.id)
+            self.size += 1
         else:
             # Ошибка?
             pass
@@ -66,10 +81,10 @@ class Group():
             # Ошибка?
             pass
 
-    def delete_user(self, id):
-        print(id)
-        if id in self.users:
-            self.users.remove(id)
+    def delete_user(self, user):
+        print(user.id)
+        if user.id in self.users:
+            self.users.remove(user.id)
         else:
             # Ошибка?
             pass
@@ -149,6 +164,21 @@ class Test():
         self.answers = []
         self.users_max_score = {}
         self.users_attempts = {}
+
+    def create_new(self, test_data: dict):
+        test_in_db = TestModel(
+            id=0,
+            group_ids=test_data['groupID'],
+            title=test_data['testName'],
+            description=test_data['testDescription'],
+            is_visible=True,
+            questions=str(test_data['questionsAndOptions']),
+            correct_answers=None,
+            users_max_score=0,
+            users_attempts=0
+        )
+        db.session.add(test_in_db)
+        db.session.commit()
 
     def change_title(self, new_title):
         self.title = new_title
