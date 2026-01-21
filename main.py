@@ -175,7 +175,7 @@ def groups_get_members():
         return jsonify({
             "status": "success", 
             "message": "Данные успешно отправлены",
-            "data": '[{"number":1,"owner":"Александр","group_size":15,"name":"Проект","ID":"123456789"},{"number":2,"owner":"Мария","group_size":8,"name":"Группа","ID":"987654321"},{"number":3,"owner":"Иван","group_size":22,"name":"Команда","ID":"456123789"},{"number":4,"owner":"Ольга","group_size":5,"name":"Отдел","ID":"321654987"},{"number":5,"owner":"Дмитрий","group_size":17,"name":"Разработка","ID":"789123456"}]'
+            "data": '[{"number":1,"name":"Том","admin":true},{"number":2,"name":"Том"},{"number":3,"name":"Том","admin":true},{"number":4,"name":"Том"}]'
         }), 200
         
     except Exception as e:
@@ -214,12 +214,37 @@ def leave_group():
 @app.route('/api/groups/create', methods=['POST'])
 @login_required()
 def create_group():
-    data = request.get_json()
-    print(data)
-    return jsonify({
-        "status": "success", 
-        "message": "Группа создана",
-    }), 200
+    try:
+        group_title = request.get_json().get('group_title')
+        if group_title:
+            user = User()
+            group_to_create = Group()
+            user.create_with_token(request.cookies.get('access_token'))
+            success = group_to_create.create_new(group_title)
+        groups = UserGroupModel.query.all()
+
+        for group in groups:
+            print(f"ID: {group.id}")
+            print(f"Title: {group.title}")
+            print(f"Size: {group.size}")
+            print(f"Admins: {group.admins}")
+            print(f"Users: {group.users}")
+            print(f"Tests: {group.tests}")
+        if success:
+            return jsonify({
+                "status": "success", 
+                "message": f"Группа '{group_to_create.title}' создана!",
+            }), 200
+        else:
+            return jsonify({
+                "status": "danger", 
+                "message": f"Группа '{group_to_create.title}' не была создана, что-то пошло не так",
+            }), 200
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": "Что-то пошло не так"
+        }), 500
 
 
 @app.route('/api/groups/join', methods=['POST'])

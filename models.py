@@ -29,7 +29,11 @@ class TestModel(db.Model):
 class UserGroupModel(db.Model):
     __tablename__ = "UserGroups"
     id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200))
+    size = db.Column(db.Integer)
     admins = db.Column(db.JSON)
     users = db.Column(db.JSON)
     tests = db.Column(db.JSON)
+    users_limit = db.Column(db.Integer)
+    admins_limit = db.Column(db.Integer)
 

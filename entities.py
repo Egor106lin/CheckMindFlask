@@ -7,7 +7,7 @@ class User():
     def __init__(self, user_id=None):
         self.id = None
         self.name = None
-        self.groups = None
+        self.groups = []
         self.email = None
         self.avatar_url = None
         self.provider = None
@@ -52,12 +52,31 @@ class Group():
     def __init__(self):
         self.id = None
         self.title = ''
-        self.size = None
+        self.size = 0
         self.tests = []
         self.admins = []
         self.users = []
-        self.users_limit = None
-        self.admins_limit = None
+        self.users_limit = 100
+        self.admins_limit = 10
+
+    def create_new(self, title):
+        self.title = title
+        try:
+            new_group = UserGroupModel(
+                id = self.id,
+                title = self.title,
+                size = self.size,
+                admins = self.admins,
+                users = self.users,
+                tests = self.tests,
+                users_limit = self.users_limit,
+                admins_limit = self.admins_limit,
+            )
+            db.session.add(new_group)
+            db.session.commit()
+            return True
+        except:
+            return False
 
     def create_with_id(self, id):
         new_group = UserGroupModel.query.get(id)
