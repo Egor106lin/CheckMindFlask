@@ -11,7 +11,8 @@ def create_user(data: dict, provider: str):
             email=data['email'],
             avatar_url=data.get('picture'),
             provider=provider,
-            groups=[],
+            groups_admin_of=[],
+            groups_user_of=[],
             access_token=data.get('access_token'),
             refresh_token=data.get('refresh_token'),
             token_expiry=data.get('token_expiry')

@@ -140,6 +140,7 @@ def test_check_answers():
 def profile_user_data():
     user_data = User()
     user_data.create_with_token(request.cookies.get('access_token'))
+    print(user_data.groups_admin_of)
     return json.dumps({
         "name": user_data.name,
         "provider": user_data.provider,
@@ -153,18 +154,46 @@ def profile_user_data():
 @login_required()
 def groups_get_list():
     try:
-        return jsonify({
+        user = User()
+        user.create_with_token(request.cookies.get('access_token'))
+        groups_admin_of = []
+        groups_user_of = []
+        for i in user.groups_admin_of:
+            group_to_show = Group()
+            group_to_show.create_with_id(i)
+            owner = User()
+            owner.create_with_id(group_to_show.admins[0])
+            groups_admin_of.append({
+                'id': group_to_show.id[0],
+                'owner': owner.name,
+                'name': group_to_show.title[0],
+                'size': group_to_show.size[0]
+            })
+        for j in user.groups_user_of:
+            group_to_show = Group()
+            group_to_show.create_with_id(j)
+            owner = User()
+            owner.create_with_id(group_to_show.admins[0])
+            groups_user_of.append({
+                'id': group_to_show.id[0],
+                'owner': owner.name,
+                'name': group_to_show.title[0],
+                'size': group_to_show.size[0]
+            })
+
+        return {
             "status": "success", 
             "message": "Данные успешно отправлены",
-            "data": '[{"number":1,"owner":"Александр","group_size":15,"name":"Проект","ID":"123456789"},{"number":2,"owner":"Мария","group_size":8,"name":"Группа","ID":"987654321"},{"number":3,"owner":"Иван","group_size":22,"name":"Команда","ID":"456123789"},{"number":4,"owner":"Ольга","group_size":5,"name":"Отдел","ID":"321654987"},{"number":5,"owner":"Дмитрий","group_size":17,"name":"Разработка","ID":"789123456"}]'
-        }), 200
+            "adminGroupsData": groups_admin_of,
+            "userGroupsData": groups_user_of
+        }, 200
         
     except Exception as e:
         print(f"Ошибка при обработке запроса: {e}")
         return jsonify({
             "status": "error",
             "message": str(e)
-        }), 400
+        }), 500
     
 
 @app.route('/api/groups/get_members', methods=['GET'])
@@ -220,7 +249,8 @@ def create_group():
             user = User()
             group_to_create = Group()
             user.create_with_token(request.cookies.get('access_token'))
-            success = group_to_create.create_new(group_title)
+            success, new_group_id = group_to_create.create_new(group_title, user.id)
+            user.add_group_admin_of(new_group_id)
         groups = UserGroupModel.query.all()
 
         for group in groups:
@@ -241,6 +271,7 @@ def create_group():
                 "message": f"Группа '{group_to_create.title}' не была создана, что-то пошло не так",
             }), 200
     except Exception as e:
+        print(e)
         return jsonify({
             "status": "error",
             "message": "Что-то пошло не так"

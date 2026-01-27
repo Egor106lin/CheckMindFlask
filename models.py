@@ -4,7 +4,8 @@ class UserModel(db.Model):
     __tablename__ = "Users"
     id = db.Column(db.String(50), primary_key=True)
     name = db.Column(db.String(50))
-    groups = db.Column(db.JSON)
+    groups_admin_of = db.Column(db.JSON)
+    groups_user_of = db.Column(db.JSON)
     email = db.Column(db.String(50))
     avatar_url = db.Column(db.String(50))
     provider = db.Column(db.String(50))
@@ -28,7 +29,7 @@ class TestModel(db.Model):
 
 class UserGroupModel(db.Model):
     __tablename__ = "UserGroups"
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     title = db.Column(db.String(200))
     size = db.Column(db.Integer)
     admins = db.Column(db.JSON)

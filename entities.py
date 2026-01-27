@@ -1,13 +1,13 @@
 from models import UserModel, UserGroupModel, TestModel
 from service.db_init import db
-import json
 
 
 class User():
     def __init__(self, user_id=None):
         self.id = None
         self.name = None
-        self.groups = []
+        self.groups_admin_of = []
+        self.groups_user_of = []
         self.email = None
         self.avatar_url = None
         self.provider = None
@@ -22,7 +22,8 @@ class User():
         if user_data:
             self.id = user_data.id
             self.name = user_data.name
-            self.groups = user_data.groups
+            self.groups_admin_of = user_data.groups_admin_of
+            self.groups_user_of = user_data.groups_user_of
             self.email = user_data.email
             self.avatar_url = user_data.avatar_url
             self.provider = user_data.provider
@@ -39,13 +40,32 @@ class User():
         if user_data:
             self.id = user_data.id
             self.name = user_data.name
-            self.groups = user_data.groups
+            self.groups_admin_of = user_data.groups_admin_of
+            self.groups_user_of = user_data.groups_user_of
             self.email = user_data.email
             self.avatar_url = user_data.avatar_url
             self.provider = user_data.provider
             self.access_token = user_data.access_token
             self.refresh_token = user_data.refresh_token
             self.token_expiry = user_data.token_expiry
+
+    def update_user_in_db(self):
+        user_to_update = UserModel.query.get(self.id)
+        user_to_update.id=self.id
+        user_to_update.name=self.name
+        user_to_update.email=self.email
+        user_to_update.avatar_url=self.avatar_url
+        user_to_update.provider=self.provider
+        user_to_update.groups_admin_of=self.groups_admin_of
+        user_to_update.groups_user_of=self.groups_user_of
+        user_to_update.access_token=self.access_token
+        user_to_update.refresh_token=self.refresh_token
+        user_to_update.token_expiry=self.token_expiry
+        db.session.commit()
+
+    def add_group_admin_of(self, group_id):
+        self.groups_admin_of.append(group_id)
+        self.update_user_in_db()
 
 
 class Group():
@@ -59,8 +79,10 @@ class Group():
         self.users_limit = 100
         self.admins_limit = 10
 
-    def create_new(self, title):
+    def create_new(self, title, first_admin_id):
         self.title = title
+        self.admins.append(first_admin_id)
+        self.size += 1
         try:
             new_group = UserGroupModel(
                 id = self.id,
@@ -74,14 +96,20 @@ class Group():
             )
             db.session.add(new_group)
             db.session.commit()
-            return True
+            return True, new_group.id
         except:
             return False
 
     def create_with_id(self, id):
         new_group = UserGroupModel.query.get(id)
-        self.id = id
-        self.users = new_group.users
+        self.id = new_group.id,
+        self.title = new_group.title,
+        self.size = new_group.size,
+        self.admins = new_group.admins,
+        self.users = new_group.users,
+        self.tests = new_group.tests,
+        self.users_limit = new_group.users_limit,
+        self.admins_limit = new_group.admins_limit,
 
     def add_user(self, user):
         if self.size <= self.users_limit:
