@@ -16,13 +16,13 @@ class UserModel(db.Model):
 
 class TestModel(db.Model):
     __tablename__ = "Tests"
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     group_ids = db.Column(db.String(500))
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text)
     is_visible = db.Column(db.Boolean, default=False)
-    questions = db.Column(db.Text)
-    correct_answers = db.Column(db.Text)
+    questions = db.Column(db.JSON)
+    answers = db.Column(db.JSON)
     users_max_score = db.Column(db.Integer)
     users_attempts = db.Column(db.Integer)
     

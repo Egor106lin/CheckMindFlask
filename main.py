@@ -72,6 +72,9 @@ def test_created_test():
         new_test = Test()
         new_test.create_new(data)
         tests = TestModel.query.all()
+        group_with_this_test = Group()
+        group_with_this_test.create_with_id(data['groupID'])
+        group_with_this_test.add_test(new_test.id)
 
         # Вывести каждую запись
         for test in tests:
@@ -81,7 +84,7 @@ def test_created_test():
             print(f"Group IDs: {test.group_ids}")
             print(f"Is Visible: {test.is_visible}")
             print(f"Questions: {test.questions}")
-            print(f"Correct Answers: {test.correct_answers}")
+            print(f"Correct Answers: {test.answers}")
             print(f"Users Max Score: {test.users_max_score}")
             print(f"Users Attempts: {test.users_attempts}")
             print("-" * 50)
@@ -163,22 +166,49 @@ def groups_get_list():
             group_to_show.create_with_id(i)
             owner = User()
             owner.create_with_id(group_to_show.admins[0])
+            tests = group_to_show.get_test()
+            print('Список ID для тестов', group_to_show.get_test())
+            res_tests = []
+            for j in tests:
+                res_tests.append({
+                    'test_name': j.title,
+                    'test_description': j.description,
+                    'questions_quantity': len(j.questions),
+                    'points': 27
+                })
             groups_admin_of.append({
-                'id': group_to_show.id[0],
+                'id': group_to_show.id,
                 'owner': owner.name,
-                'name': group_to_show.title[0],
-                'size': group_to_show.size[0]
+                'name': group_to_show.title,
+                'role': 'Admin',
+                'size': group_to_show.size,
+                'tests': res_tests,
+                'indexForFirstTest': 0,
+                'indexForLastTest': 3
             })
-        for j in user.groups_user_of:
+        for k in user.groups_user_of:
             group_to_show = Group()
-            group_to_show.create_with_id(j)
+            group_to_show.create_with_id(k)
             owner = User()
             owner.create_with_id(group_to_show.admins[0])
+            tests = group_to_show.get_test()
+            res_tests = []
+            for m in tests:
+                res_tests.append({
+                    'test_name': m.title,
+                    'test_description': m.description,
+                    'questions_quantity': len(m.questions),
+                    'points': 27
+                })
             groups_user_of.append({
-                'id': group_to_show.id[0],
+                'id': group_to_show.id,
                 'owner': owner.name,
-                'name': group_to_show.title[0],
-                'size': group_to_show.size[0]
+                'name': group_to_show.title,
+                'role': 'User',
+                'size': group_to_show.size,
+                'tests': res_tests,
+                'indexForFirstTest': 0,
+                'indexForLastTest': 3
             })
 
         return {

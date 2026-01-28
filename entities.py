@@ -1,5 +1,6 @@
 from models import UserModel, UserGroupModel, TestModel
 from service.db_init import db
+import json
 
 
 class User():
@@ -102,14 +103,26 @@ class Group():
 
     def create_with_id(self, id):
         new_group = UserGroupModel.query.get(id)
-        self.id = new_group.id,
-        self.title = new_group.title,
-        self.size = new_group.size,
-        self.admins = new_group.admins,
-        self.users = new_group.users,
-        self.tests = new_group.tests,
-        self.users_limit = new_group.users_limit,
-        self.admins_limit = new_group.admins_limit,
+        self.id = new_group.id
+        self.title = new_group.title
+        self.size = new_group.size
+        self.admins = new_group.admins
+        self.users = new_group.users
+        self.tests = new_group.tests
+        self.users_limit = new_group.users_limit
+        self.admins_limit = new_group.admins_limit
+
+    def update_group_in_db(self):
+        group_to_update = UserGroupModel.query.get(self.id)
+        group_to_update.id=self.id
+        group_to_update.title=self.title
+        group_to_update.size=self.size
+        group_to_update.tests=self.tests
+        group_to_update.admins=self.admins
+        group_to_update.users=self.users
+        group_to_update.users_limit=self.users_limit
+        group_to_update.admins_limit=self.admins_limit
+        db.session.commit()
 
     def add_user(self, user):
         if self.size <= self.users_limit:
@@ -127,6 +140,10 @@ class Group():
         else:
             # Ошибка?
             pass
+    
+    def add_test(self, id):
+        self.tests.append(id)
+        self.update_group_in_db()
 
     def delete_user(self, user):
         print(user.id)
@@ -157,12 +174,15 @@ class Group():
             pass
     
     def get_test(self, id=None):
-        print(id)
-        if id == None:
-            # Отдаем все тесты для этой группы
-            pass
+        if id is None:
+            tests = []
+            for test_id in self.tests:
+                test = TestModel.query.get(test_id)
+                if test:
+                    tests.append(test)
+            return tests
         elif id in self.tests:
-            return self.tests[id]
+            return TestModel.query.get(id)
         else:
             # Ошибка?
             pass
@@ -214,18 +234,31 @@ class Test():
 
     def create_new(self, test_data: dict):
         test_in_db = TestModel(
-            id=0,
+            id = self.id,
             group_ids=test_data['groupID'],
             title=test_data['testName'],
             description=test_data['testDescription'],
             is_visible=True,
-            questions=str(test_data['questionsAndOptions']),
-            correct_answers=None,
+            questions=test_data['questionsAndOptions'],
+            answers=None,
             users_max_score=0,
             users_attempts=0
         )
         db.session.add(test_in_db)
         db.session.commit()
+        self.create_with_id(test_in_db.id)
+
+    def create_with_id(self, id):
+        new_test = TestModel.query.get(id)
+        self.id = new_test.id
+        self.title = new_test.title
+        self.description = new_test.description
+        self.groups = new_test.group_ids
+        self.is_visible = new_test.is_visible
+        self.questions = new_test.questions
+        self.answers = new_test.answers
+        self.users_max_score = new_test.users_max_score
+        self.users_attempts = new_test.users_attempts
 
     def change_title(self, new_title):
         self.title = new_title
