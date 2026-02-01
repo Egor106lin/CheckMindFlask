@@ -4,6 +4,7 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str
     GOOGLE_CLIENT_SECRET: str
     FRONTEND_URL: str
+    JOIN_SECRET: str
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

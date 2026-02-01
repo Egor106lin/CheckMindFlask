@@ -12,12 +12,13 @@ from entities import User, Group, Test
 from service.db_init import db
 from service.generate_links import generate_google_url
 from service.config import settings
-from service.jwt_decoder import jwt_decode
+from service.jwt_service import jwt_decode, jwt_encode
 from service.create_user import create_user
 from service.update_access_token import update_access_token
 from service.login_required import login_required
 
 import json
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
@@ -62,6 +63,31 @@ async def auth_google():
     except Exception as e:
         print(e)
         return abort(500)
+
+
+@app.route('/api/invite/generate/<int:group_id>', methods=['GET'])
+@login_required()
+def generate_invite_url(group_id):
+    group_to_change = Group()
+    group_to_change.create_with_id(group_id)
+    admin = User()
+    admin.create_with_token(request.cookies.get('access_token'))
+    if admin.id not in group_to_change.admins:
+        return 403
+    else:
+        invite_data = {
+            'group_id': group_id,
+            'exp': datetime.now() + timedelta(days=1),
+            'created_by_name': admin.name,
+            'created_by_email': admin.email,
+            'purpose': 'group_join'
+        }
+        token = jwt_encode(invite_data)
+        invite_url = f"{settings.FRONTEND_URL}/join?token={token}"
+        return jsonify({
+            "status": "success",
+            "invite_url": invite_url
+        })
 
 
 @app.route('/api/tests/created_test', methods=['POST'])
