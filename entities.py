@@ -65,8 +65,14 @@ class User():
         db.session.commit()
 
     def add_group_admin_of(self, group_id):
-        self.groups_admin_of.append(group_id)
-        self.update_user_in_db()
+        if group_id not in self.groups_admin_of:
+            self.groups_admin_of.append(group_id)
+            self.update_user_in_db()
+
+    def add_group_user_of(self, group_id):
+        if group_id not in self.groups_user_of:
+            self.groups_user_of.append(group_id)
+            self.update_user_in_db()
 
 
 class Group():
@@ -125,9 +131,10 @@ class Group():
         db.session.commit()
 
     def add_user(self, user):
-        if self.size <= self.users_limit:
+        if self.size <= self.users_limit and user.id not in self.admins and user.id not in self.users:
             self.users.append(user.id)
             self.size += 1
+            self.update_group_in_db()
         else:
             # Ошибка?
             pass

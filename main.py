@@ -17,7 +17,7 @@ from service.create_user import create_user
 from service.update_access_token import update_access_token
 from service.login_required import login_required
 
-import json
+import json, jwt
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
@@ -88,6 +88,38 @@ def generate_invite_url(group_id):
             "status": "success",
             "invite_url": invite_url
         })
+
+
+@app.route('/api/invite/accept', methods=['POST'])
+@login_required()
+def accept_invite():
+    try:
+        token = request.json.get('token')
+        token_data = jwt.decode(
+            token,
+            settings.JOIN_SECRET,
+            algorithms=['HS256']
+        )
+        group = Group()
+        group.create_with_id(token_data['group_id'])
+        user = User()
+        user.create_with_token(request.cookies.get('access_token'))
+        group.add_user(user)
+        user.add_group_user_of(group.id)
+        res = {
+            "title": group.title,
+            "name": token_data['created_by_name'],
+            "email": token_data['created_by_email']
+        }
+        return jsonify({
+            "status": "success",
+            "groupData": res
+        }), 200
+    except Exception as e:
+        print(e)
+        return jsonify({
+            "status": "Error"
+        }), 200
 
 
 @app.route('/api/tests/created_test', methods=['POST'])
@@ -169,7 +201,6 @@ def test_check_answers():
 def profile_user_data():
     user_data = User()
     user_data.create_with_token(request.cookies.get('access_token'))
-    print(user_data.groups_admin_of)
     return json.dumps({
         "name": user_data.name,
         "provider": user_data.provider,
@@ -332,17 +363,6 @@ def create_group():
             "status": "error",
             "message": "Что-то пошло не так"
         }), 500
-
-
-@app.route('/api/groups/join', methods=['POST'])
-@login_required()
-def join_group():
-    user_id = request.get_json()
-    print(request.data)
-    return jsonify({
-        "status": "success", 
-        "message": "Вы присоединены к группе",
-    }), 200
 
 
 if __name__ == '__main__':
