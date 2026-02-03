@@ -232,7 +232,6 @@ def groups_get_list():
             owner = User()
             owner.create_with_id(group_to_show.admins[0])
             tests = group_to_show.get_test()
-            print('Список ID для тестов', group_to_show.get_test())
             res_tests = []
             for j in tests:
                 res_tests.append({

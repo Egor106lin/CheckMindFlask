@@ -1,5 +1,9 @@
 from models import UserModel, UserGroupModel, TestModel
+from schemas import TestCreateInputSchema
+
 from service.db_init import db
+from service.test_data_processor import TestDataProcessor
+
 import json
 
 
@@ -149,7 +153,8 @@ class Group():
             pass
     
     def add_test(self, id):
-        self.tests.append(id)
+        if id not in self.tests:
+            self.tests.append(id)
         self.update_group_in_db()
 
     def delete_user(self, user):
@@ -240,20 +245,30 @@ class Test():
         self.users_attempts = {}
 
     def create_new(self, test_data: dict):
-        test_in_db = TestModel(
-            id = self.id,
-            group_ids=test_data['groupID'],
-            title=test_data['testName'],
-            description=test_data['testDescription'],
-            is_visible=True,
-            questions=test_data['questionsAndOptions'],
-            answers=None,
-            users_max_score=0,
-            users_attempts=0
-        )
-        db.session.add(test_in_db)
-        db.session.commit()
-        self.create_with_id(test_in_db.id)
+        try:
+            validated_input, processed_questions, max_score = TestDataProcessor.process_input_data(test_data)
+            db_data = TestDataProcessor.prepare_for_db(
+                validated_input, 
+                processed_questions, 
+                max_score
+            )
+            test_in_db = TestModel(
+                group_ids=db_data['group_ids'],
+                title=db_data['title'],
+                description=db_data['description'],
+                is_visible=db_data['is_visible'],
+                questions=db_data['questions'],
+                answers=db_data['answers'],
+                users_max_score=db_data['users_max_score'],
+                users_attempts=db_data['users_attempts']
+            )
+            db.session.add(test_in_db)
+            db.session.commit()
+            self.create_with_id(test_in_db.id)
+            return True
+        except Exception as e:
+            db.session.rollback()
+            return False
 
     def create_with_id(self, id):
         new_test = TestModel.query.get(id)
@@ -266,6 +281,21 @@ class Test():
         self.answers = new_test.answers
         self.users_max_score = new_test.users_max_score
         self.users_attempts = new_test.users_attempts
+
+    def update_test_in_db(self):
+        test_to_update = TestModel.query.get(self.id)
+        if test_to_update:
+            test_to_update.group_ids = self.groups
+            test_to_update.title = self.title
+            test_to_update.description = self.description
+            test_to_update.is_visible = self.is_visible
+            test_to_update.questions = self.questions
+            test_to_update.answers = self.answers
+            test_to_update.users_max_score = self.users_max_score
+            test_to_update.users_attempts = self.users_attempts
+            db.session.commit()
+            return True
+        return False
 
     def change_title(self, new_title):
         self.title = new_title
