@@ -1,6 +1,6 @@
 import requests
 
-from flask import Flask, request, jsonify, Response, abort, redirect
+from flask import Flask, make_response, request, jsonify, abort, redirect
 from aiohttp import ClientSession
 
 from flask_sqlalchemy import SQLAlchemy
@@ -208,6 +208,14 @@ def profile_user_data():
         "email": user_data.email,
         "id": user_data.id
     })
+
+
+@app.route('/api/profile/leave', methods=['GET'])
+@login_required()
+def prfile_leave():
+    resp = make_response()
+    resp.delete_cookie('access_token')
+    return resp
 
 
 @app.route('/api/groups/get_list', methods=['GET'])
