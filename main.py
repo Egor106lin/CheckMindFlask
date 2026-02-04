@@ -160,14 +160,18 @@ def test_created_test():
         }), 400
 
 
-@app.route('/api/tests/questions_and_options', methods=['GET'])
+@app.route('/api/tests/questions_and_options', methods=['POST'])
 @login_required()
 def test_questions_and_options():
     try:
+        request_data = request.get_json()['params']
+        test_id = request_data['test_id']
+        test_to_send = Test()
+        test_to_send.create_with_id(test_id)
         return jsonify({
             "status": "success", 
             "message": "Данные успешно отправлены",
-            "data": '{"groupID":"123456789","questionsQuantity":5,"testName":"Тест для отладки","testDescription":"Тест для отладки основных функций на фронте","questionsAndOptions":[{"question":"1","options":[{"title":"ответ","correct":false},{"title":"ответ","correct":true},{"title":"вопрос","correct":false}]},{"question":"2","options":[{"title":"3","correct":false},{"title":"2","correct":true}]},{"question":"1","options":[{"title":"4","correct":true},{"title":"7","correct":false}]},{"question":"вопрос 4","options":[{"title":"ответ 1","correct":false},{"title":"ответ 2","correct":true},{"title":"ответ 3","correct":false}]},{"question":"вопрос 5","options":[{"title":"ответ 10","correct":false},{"title":"ответ 17","correct":false},{"title":"ответ 42","correct":false},{"title":"ответ 44","correct":false},{"title":"1","correct":false},{"title":"2","correct":false},{"title":"4","correct":true},{"title":"8","correct":false},{"title":"9","correct":false},{"title":"10","correct":false}]}]}'
+            "data": test_to_send.to_frontend_format()
         }), 200
         
     except Exception as e:
@@ -238,6 +242,7 @@ def groups_get_list():
                     'test_name': j.title,
                     'test_description': j.description,
                     'questions_quantity': len(j.questions),
+                    'id': j.id,
                     'points': 27
                 })
             groups_admin_of.append({
@@ -262,6 +267,7 @@ def groups_get_list():
                     'test_name': m.title,
                     'test_description': m.description,
                     'questions_quantity': len(m.questions),
+                    'id': m.id,
                     'points': 27
                 })
             groups_user_of.append({

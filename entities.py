@@ -296,6 +296,25 @@ class Test():
             db.session.commit()
             return True
         return False
+    
+    def to_frontend_format(self):
+        frontend_questions = []
+        for i in self.questions:
+            frontend_question = {
+                "question": i["text"],
+                "options": [{"title": j} for j in i["options"]]
+            }
+            frontend_questions.append(frontend_question)
+        
+        group_id = self.groups[0]
+        
+        return {
+            "groupID": group_id,
+            "questionsQuantity": len(frontend_questions),
+            "testName": self.title,
+            "testDescription": self.description or "",
+            "questionsAndOptions": frontend_questions
+        }
 
     def change_title(self, new_title):
         self.title = new_title
