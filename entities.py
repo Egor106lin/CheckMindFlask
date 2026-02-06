@@ -306,14 +306,52 @@ class Test():
             }
             frontend_questions.append(frontend_question)
         
-        group_id = self.groups[0]
+        test_id = self.id
         
         return {
-            "groupID": group_id,
+            "testID": test_id,
             "questionsQuantity": len(frontend_questions),
             "testName": self.title,
             "testDescription": self.description or "",
             "questionsAndOptions": frontend_questions
+        }
+    
+    def check_answers(self, user_answers: list):
+        score = 0
+        max_score = 0
+        detailed_results = []
+        for i in range(len(self.answers)):
+            correct_data = self.answers[i]
+            correct_indices = correct_data.get('correct_options')
+            points_per_question = correct_data.get('points')
+            max_score += points_per_question
+            user_answer_data = user_answers[i]
+            user_selected = user_answer_data.get('answers')
+            question_data = self.questions[i]
+            options = question_data.get('options')
+            correct_set = set(correct_indices)
+            user_set = set(user_selected)
+            if correct_set == user_set:
+                question_score = points_per_question
+            else:
+                question_score = 0   
+            score += question_score
+            user_answers_texts = [options[idx] for idx in user_selected if idx < len(options)]
+            correct_answers_texts = [options[idx] for idx in correct_indices if idx < len(options)]
+            
+            detailed_results.append({
+                'question': user_answer_data.get('question', f'Вопрос {i+1}'),
+                'userAnswers': user_answers_texts,
+                'correctAnswers': correct_answers_texts,
+                'pointsEarned': question_score,
+                'maxPoints': points_per_question
+            })
+        
+        return {
+            'testName': self.title,
+            'userScore': score,
+            'maxScore': max_score,
+            'detailedResults': detailed_results
         }
 
     def change_title(self, new_title):

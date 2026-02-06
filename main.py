@@ -186,11 +186,10 @@ def test_questions_and_options():
 @login_required()
 def test_check_answers():
     try:
-        return jsonify({
-            "status": "success", 
-            "message": "Данные успешно получены",
-            "data": '{"groupID":"123456789","questionsQuantity":5,"testName":"Тест для отладки","testDescription":"Описание теста для отладки. С помощью него можно сверстать страницу, на которой нужен готовый тест.","result":"4","mistakes":[{"question":"Вопрос 1","correct":true},{"question":"Вопрос 2","correct":true},{"question":"Вопрос 3","correct":false},{"question":"Вопрос 4","correct":true},{"question":"Вопрос 5","correct":false}]}'
-        }), 200
+        test_to_check = Test()
+        request_data = request.get_json()
+        test_to_check.create_with_id(request_data['test_id'])
+        return jsonify(test_to_check.check_answers(request_data['user_answers'])), 200
         
     except Exception as e:
         print(f"Ошибка при обработке запроса: {e}")
