@@ -88,6 +88,16 @@ class User():
             self.groups_user_of.remove(group_id)
             self.update_user_in_db()
 
+    def delete_group_from_lists(self, group_id):
+        if group_id in self.groups_admin_of:
+            self.delete_group_admin_of(group_id)
+            return True
+        elif group_id in self.groups_user_of:
+            self.delete_group_user_of(group_id)
+            return True
+        else:
+            return False
+
 
 class Group():
     def __init__(self):
@@ -170,21 +180,38 @@ class Group():
             self.tests.append(id)
         self.update_group_in_db()
 
-    def delete_user(self, user):
-        print(user.id)
-        if user.id in self.users:
-            self.users.remove(user.id)
-        else:
-            # Ошибка?
-            pass
+    def delete_user(self, id):
+        try:
+            self.users.remove(id)
+            self.size -= 1
+            self.update_group_in_db()
+            return True
+        except:
+            db.session.rollback()
+            return False
     
     def delete_admin(self, id):
-        print(id)
-        if id in self.admins:
+        try:
             self.admins.remove(id)
+            self.size -= 1
+            self.update_group_in_db()
+            return True
+        except:
+            db.session.rollback()
+            return False
+
+    def delete_person(self, id):
+        if id in self.admins and len(self.admins) == 1:
+            self.delete_group(id)
+            return True
+        elif id in self.admins:
+            self.delete_admin(id)
+            return True
+        elif id in self.users:
+            self.delete_user(id)
+            return True
         else:
-            # Ошибка?
-            pass
+            return False
 
     def delete_group(self, admin_id):
         if admin_id not in self.admins:

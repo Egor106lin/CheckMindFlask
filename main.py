@@ -133,19 +133,6 @@ def test_created_test():
         group_with_this_test = Group()
         group_with_this_test.create_with_id(data['groupID'])
         group_with_this_test.add_test(new_test.id)
-
-        # Вывести каждую запись
-        for test in tests:
-            print(f"ID: {test.id}")
-            print(f"Title: {test.title}")
-            print(f"Description: {test.description}")
-            print(f"Group IDs: {test.group_ids}")
-            print(f"Is Visible: {test.is_visible}")
-            print(f"Questions: {test.questions}")
-            print(f"Correct Answers: {test.answers}")
-            print(f"Users Max Score: {test.users_max_score}")
-            print(f"Users Attempts: {test.users_attempts}")
-            print("-" * 50)
         return jsonify({
             "status": "success", 
             "message": "Данные успешно получены",
@@ -334,19 +321,32 @@ def delete_group():
             }), 500
     except:
         return jsonify({
-                'status': 'error'
-            }), 500
+            'status': 'error'
+        }), 500
 
 
 @app.route('/api/groups/leave', methods=['POST'])
 @login_required()
 def leave_group():
-    user_id = request.get_json()
-    print(request.data)
-    return jsonify({
-        "status": "success", 
-        "message": "Группа покинута",
-    }), 200
+    try:
+        group_id = request.get_json()
+        group, user = Group(), User()
+        group.create_with_id(group_id)
+        user.create_with_token(request.cookies.get('access_token'))
+        if group.delete_person(user.id):
+            user.delete_group_from_lists(group_id)
+            return jsonify({
+                "status": "success", 
+                "message": "Группа покинута",
+            }), 200
+        else:
+            return jsonify({
+                'status': 'error'
+            }), 500
+    except:
+        return jsonify({
+                'status': 'error'
+            }), 500
 
 
 @app.route('/api/groups/create', methods=['POST'])
