@@ -56,7 +56,7 @@ async def auth_google():
         user_data['access_token'] = res['access_token']
         user_data['token_expiry'] = res['expires_in']
         user_data['refresh_token'] = res['refresh_token']
-        create_user(user_data, 'google')
+        create_user(user_data, 'Google')
         response = redirect(f'{settings.FRONTEND_URL}/profile')
         response.set_cookie('access_token', user_data['access_token'], httponly=True)
         return response
@@ -215,7 +215,7 @@ def profile_user_data():
 
 @app.route('/api/profile/leave', methods=['GET'])
 @login_required()
-def prfile_leave():
+def profile_leave():
     resp = make_response()
     resp.delete_cookie('access_token')
     return resp
@@ -231,7 +231,8 @@ def groups_get_list():
         groups_user_of = []
         for i in user.groups_admin_of:
             group_to_show = Group()
-            group_to_show.create_with_id(i)
+            if not group_to_show.create_with_id(i):
+                continue
             owner = User()
             owner.create_with_id(group_to_show.admins[0])
             tests = group_to_show.get_test()
@@ -317,15 +318,24 @@ def groups_get_members():
 @app.route('/api/groups/delete', methods=['POST'])
 @login_required()
 def delete_group():
-    user = User()
-    group = Group()
-    user.create_with_token(request.cookies.get('access_token'))
-    group.delete_user(user)
-    user_id = request.get_json()
-    return jsonify({
-        "status": "success", 
-        "message": "Группа удалена",
-    }), 200
+    try:
+        user = User()
+        group = Group()
+        user.create_with_token(request.cookies.get('access_token'))
+        group.create_with_id(request.get_json())
+        res = group.delete_group(user.id)
+        if res:
+            return jsonify({
+                'status': 'success'
+            }), 200
+        else:
+            return jsonify({
+                'status': 'error'
+            }), 500
+    except:
+        return jsonify({
+                'status': 'error'
+            }), 500
 
 
 @app.route('/api/groups/leave', methods=['POST'])

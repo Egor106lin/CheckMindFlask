@@ -78,6 +78,16 @@ class User():
             self.groups_user_of.append(group_id)
             self.update_user_in_db()
 
+    def delete_group_admin_of(self, group_id):
+        if group_id in self.groups_admin_of:
+            self.groups_admin_of.remove(group_id)
+            self.update_user_in_db()
+
+    def delete_group_user_of(self, group_id):
+        if group_id in self.groups_user_of:
+            self.groups_user_of.remove(group_id)
+            self.update_user_in_db()
+
 
 class Group():
     def __init__(self):
@@ -113,6 +123,8 @@ class Group():
 
     def create_with_id(self, id):
         new_group = UserGroupModel.query.get(id)
+        if not new_group:
+            return False
         self.id = new_group.id
         self.title = new_group.title
         self.size = new_group.size
@@ -121,6 +133,7 @@ class Group():
         self.tests = new_group.tests
         self.users_limit = new_group.users_limit
         self.admins_limit = new_group.admins_limit
+        return True
 
     def update_group_in_db(self):
         group_to_update = UserGroupModel.query.get(self.id)
@@ -174,8 +187,29 @@ class Group():
             pass
 
     def delete_group(self, admin_id):
-        print(admin_id)
-        # Удалить группу из бд
+        if admin_id not in self.admins:
+            return False
+        else:
+            try:
+                for i in self.users:
+                    user = User()
+                    user.create_with_id(i)
+                    user.delete_group_user_of(self.id)
+                for j in self.admins:
+                    user = User()
+                    user.create_with_id(j)
+                    user.delete_group_admin_of(self.id)
+                for k in self.tests:
+                    test = Test()
+                    test.create_with_id(k)
+                    test.delete_for_group(self.id)
+                group_to_delete = UserGroupModel.query.get(self.id)
+                db.session.delete(group_to_delete)
+                db.session.commit()
+                return True
+            except:
+                db.session.rollback()
+                return False
 
     def change_title(self, admin_id, new_title):
         print(admin_id)
@@ -196,23 +230,6 @@ class Group():
         elif id in self.tests:
             return TestModel.query.get(id)
         else:
-            # Ошибка?
-            pass
-                
-    def delete_test(self, admin_id, id=None):
-        print(id, admin_id)
-        if admin_id in self.admins:
-            if id == None:
-                # Удалить из бд все тесты этой группы
-                self.tests = []
-            elif id in self.tests:
-                # Удалить из бд этот тест
-                self.tests.remove(id)
-            else:
-                # Ошибка?
-                pass
-        else:
-            # Ошибка?
             pass
 
     def change_users_limit(self, admin_id, limit=40):
@@ -368,14 +385,19 @@ class Test():
         self.groups.append(group_id)
 
     def delete_for_group(self, group_id):
-        if len(self.groups == 1):
+        if len(self.groups) == 1:
             self.delete_test()
         else:
             self.groups.remove(group_id)
 
     def delete_test(self):
-        # Удалять тест из бд
-        pass
+        try:
+            test_to_delete = TestModel.query.get(self.id)
+            db.session.delete(test_to_delete)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(e)
 
     def publish_test(self):
         self.is_visible = True
