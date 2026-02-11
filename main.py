@@ -186,6 +186,48 @@ def test_check_answers():
         }), 400
     
 
+@app.route('/api/tests/delete', methods=['POST'])
+@login_required()
+def test_delete():
+    try:
+        test_id = request.get_json()['test_id']
+        test = Test()
+        test.create_with_id(test_id)
+        if test.delete_test():
+            return jsonify({
+                "status": "success"
+            }), 200
+        else:
+            return jsonify({
+                "status": "error"
+            }), 500
+    except Exception as e:
+        return jsonify({
+            "status": "error"
+        }), 500
+    
+
+@app.route('/api/tests/archive', methods=['POST'])
+@login_required()
+def test_archive():
+    try:
+        test_id = request.get_json()['test_id']
+        test = Test()
+        test.create_with_id(test_id)
+        if test.archive_test():
+            return jsonify({
+                "status": "success"
+            }), 200
+        else:
+            return jsonify({
+                "status": "error"
+            }), 500
+    except Exception as e:
+        return jsonify({
+            "status": "error"
+        }), 500
+    
+
 @app.route('/api/profile/user_data', methods=['GET'])
 @login_required()
 def profile_user_data():
@@ -250,13 +292,14 @@ def groups_get_list():
             tests = group_to_show.get_test()
             res_tests = []
             for m in tests:
-                res_tests.append({
-                    'test_name': m.title,
-                    'test_description': m.description,
-                    'questions_quantity': len(m.questions),
-                    'id': m.id,
-                    'points': 27
-                })
+                if m.is_visible:
+                    res_tests.append({
+                        'test_name': m.title,
+                        'test_description': m.description,
+                        'questions_quantity': len(m.questions),
+                        'id': m.id,
+                        'points': 27
+                    })
             groups_user_of.append({
                 'id': group_to_show.id,
                 'owner': owner.name,

@@ -316,6 +316,8 @@ class Test():
 
     def create_with_id(self, id):
         new_test = TestModel.query.get(id)
+        if not new_test:
+            return False
         self.id = new_test.id
         self.title = new_test.title
         self.description = new_test.description
@@ -325,6 +327,7 @@ class Test():
         self.answers = new_test.answers
         self.users_max_score = new_test.users_max_score
         self.users_attempts = new_test.users_attempts
+        return True
 
     def update_test_in_db(self):
         test_to_update = TestModel.query.get(self.id)
@@ -422,15 +425,22 @@ class Test():
             test_to_delete = TestModel.query.get(self.id)
             db.session.delete(test_to_delete)
             db.session.commit()
+            return True
         except Exception as e:
             db.session.rollback()
-            print(e)
+            return False
 
     def publish_test(self):
         self.is_visible = True
+        self.update_test_in_db()
 
-    def close_test(self):
-        self.is_visible = False
+    def archive_test(self):
+        try:
+            self.is_visible = False
+            self.update_test_in_db()
+            return True
+        except Exception as e:
+            return False
 
     def update_max_score(self, user_id, max_score):
         score_now = self.users_max_score.get(user_id)
