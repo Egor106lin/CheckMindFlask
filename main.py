@@ -228,6 +228,27 @@ def test_archive():
         }), 500
     
 
+@app.route('/api/tests/dearchive', methods=['POST'])
+@login_required()
+def test_dearchive():
+    try:
+        test_id = request.get_json()['test_id']
+        test = Test()
+        test.create_with_id(test_id)
+        if test.dearchive_test():
+            return jsonify({
+                "status": "success"
+            }), 200
+        else:
+            return jsonify({
+                "status": "error"
+            }), 500
+    except Exception as e:
+        return jsonify({
+            "status": "error"
+        }), 500
+    
+
 @app.route('/api/profile/user_data', methods=['GET'])
 @login_required()
 def profile_user_data():
@@ -271,6 +292,7 @@ def groups_get_list():
                     'test_name': j.title,
                     'test_description': j.description,
                     'questions_quantity': len(j.questions),
+                    'archived': not j.is_visible,
                     'id': j.id,
                     'points': 27
                 })

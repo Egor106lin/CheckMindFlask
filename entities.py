@@ -441,6 +441,14 @@ class Test():
             return True
         except Exception as e:
             return False
+        
+    def dearchive_test(self):
+        try:
+            self.is_visible = True
+            self.update_test_in_db()
+            return True
+        except Exception as e:
+            return False
 
     def update_max_score(self, user_id, max_score):
         score_now = self.users_max_score.get(user_id)
