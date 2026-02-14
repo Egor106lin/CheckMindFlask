@@ -441,6 +441,33 @@ def delete_member():
         return jsonify({
             'status': 'error'
         }), 500
+    
+
+@app.route('/api/groups/make_member_admin', methods=['POST'])
+@login_required()
+def make_member_admin():
+    try:
+        admin, user, group = User(), User(), Group()
+        admin.create_with_token(request.cookies.get('access_token'))
+        user.create_with_id(request.get_json().get('user_id'))
+        group.create_with_id(request.get_json().get('group_id'))
+        if group.is_admin(admin.id):
+            if user.change_group_user_admin(group.id) and group.make_user_admin(user.id):
+                return jsonify({
+                    'status': 'success'
+                }), 200
+            else:
+                return jsonify({
+                'status': 'error'
+            }), 500
+        else:
+            return jsonify({
+                'status': 'error'
+            }), 403
+    except:
+        return jsonify({
+            'status': 'error'
+        }), 500
 
 
 @app.route('/api/groups/create', methods=['POST'])
@@ -454,15 +481,6 @@ def create_group():
             user.create_with_token(request.cookies.get('access_token'))
             success, new_group_id = group_to_create.create_new(group_title, user.id)
             user.add_group_admin_of(new_group_id)
-        groups = UserGroupModel.query.all()
-
-        for group in groups:
-            print(f"ID: {group.id}")
-            print(f"Title: {group.title}")
-            print(f"Size: {group.size}")
-            print(f"Admins: {group.admins}")
-            print(f"Users: {group.users}")
-            print(f"Tests: {group.tests}")
         if success:
             return jsonify({
                 "status": "success", 

@@ -98,6 +98,20 @@ class User():
             return True
         else:
             return False
+        
+    def change_group_user_admin(self, group_id):
+        if group_id in self.groups_admin_of:
+            self.groups_admin_of.remove(group_id)
+            self.groups_user_of.append(group_id)
+            self.update_user_in_db()
+            return True
+        elif group_id in self.groups_user_of:
+            self.groups_user_of.remove(group_id)
+            self.groups_admin_of.append(group_id)
+            self.update_user_in_db()
+            return True
+        else:
+            return False
 
 
 class Group():
@@ -167,14 +181,14 @@ class Group():
             # Ошибка?
             pass
     
-    def add_admin(self, id, admin_id):
-        print(id, admin_id)
-        if len(self.admins) <= self.admins_limit and admin_id in self.admins:
-            # Добавляем админа
-            pass
+    def add_admin(self, id):
+        if len(self.admins) <= self.admins_limit:
+            self.admins.append(id)
+            self.size += 1
+            self.update_group_in_db()
+            return True
         else:
-            # Ошибка?
-            pass
+            return False
     
     def add_test(self, id):
         if id not in self.tests:
@@ -213,6 +227,9 @@ class Group():
             return True
         else:
             return False
+        
+    def make_user_admin(self, id):
+        return self.delete_user(id) and self.add_admin(id)
 
     def delete_group(self, admin_id):
         if admin_id not in self.admins:
