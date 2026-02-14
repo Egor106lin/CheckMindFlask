@@ -78,6 +78,9 @@ class User():
         if group_id not in self.groups_user_of:
             self.groups_user_of.append(group_id)
             self.update_user_in_db()
+            return True
+        else:
+            return False
 
     def delete_group_admin_of(self, group_id):
         if group_id in self.groups_admin_of:
@@ -177,9 +180,9 @@ class Group():
             self.users.append(user.id)
             self.size += 1
             self.update_group_in_db()
+            return True
         else:
-            # Ошибка?
-            pass
+            return False
     
     def add_admin(self, id):
         if len(self.admins) <= self.admins_limit:
@@ -277,7 +280,7 @@ class Group():
         else:
             pass
 
-    def get_members(self):
+    def get_members(self, user_id):
         users, admins = [], []
         for uid in self.users:
             user = User()
@@ -285,6 +288,7 @@ class Group():
                 users.append({
                     "name": user.name,
                     "admin": False,
+                    "you": user.id == user_id,
                     "id": user.id
                 })
         for aid in self.admins:
@@ -293,6 +297,7 @@ class Group():
                 admins.append({
                     "name": admin.name,
                     "admin": True,
+                    "you": admin.id == user_id,
                     "id": admin.id
                 })
         return users + admins

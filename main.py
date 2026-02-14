@@ -75,9 +75,11 @@ def generate_invite_url(group_id):
     if admin.id not in group_to_change.admins:
         return 403
     else:
+        expire_in = timedelta(days=1)
+        expire_timestamp = int((datetime.now() + expire_in).timestamp())
         invite_data = {
             'group_id': group_id,
-            'exp': datetime.now() + timedelta(days=1),
+            'exp': expire_timestamp,
             'created_by_name': admin.name,
             'created_by_email': admin.email,
             'purpose': 'group_join'
@@ -95,30 +97,37 @@ def generate_invite_url(group_id):
 def accept_invite():
     try:
         token = request.json.get('token')
-        token_data = jwt.decode(
-            token,
-            settings.JOIN_SECRET,
-            algorithms=['HS256']
-        )
+        try:
+            token_data = jwt.decode(
+                token,
+                settings.JOIN_SECRET,
+                algorithms=['HS256']
+            )
+        except jwt.exceptions.ExpiredSignatureError:
+            return jsonify({"status": "error", "message": "Срок действия приглашения истек"}), 400
+        except jwt.exceptions.InvalidTokenError:
+            return jsonify({"status": "error", "message": "Недействительное приглашение"}), 400
         group = Group()
         group.create_with_id(token_data['group_id'])
         user = User()
         user.create_with_token(request.cookies.get('access_token'))
-        group.add_user(user)
-        user.add_group_user_of(group.id)
-        res = {
-            "title": group.title,
-            "name": token_data['created_by_name'],
-            "email": token_data['created_by_email']
-        }
-        return jsonify({
-            "status": "success",
-            "groupData": res
+        if group.add_user(user) and user.add_group_user_of(group.id):
+            res = {
+                "title": group.title,
+                "name": token_data['created_by_name'],
+                "email": token_data['created_by_email']
+            }
+            return jsonify({
+                "status": "success",
+                "groupData": res
+            }), 200
+        else:
+            return jsonify({
+            "status": "error"
         }), 200
     except Exception as e:
-        print(e)
         return jsonify({
-            "status": "Error"
+            "status": "error"
         }), 200
 
 
@@ -352,9 +361,10 @@ def groups_get_list():
 @login_required()
 def groups_get_members():
     try:
-        group = Group()
+        group, user = Group(), User()
         group.create_with_id(request.get_json()['group_id'])
-        data = group.get_members()
+        user.create_with_token(request.cookies.get('access_token'))
+        data = group.get_members(user.id)
         return jsonify({
             "status": "success", 
             "message": "Данные успешно отправлены",
