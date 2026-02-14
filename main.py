@@ -412,8 +412,35 @@ def leave_group():
             }), 500
     except:
         return jsonify({
+            'status': 'error'
+        }), 500
+    
+
+@app.route('/api/groups/delete_member', methods=['POST'])
+@login_required()
+def delete_member():
+    try:
+        admin, user, group = User(), User(), Group()
+        admin.create_with_token(request.cookies.get('access_token'))
+        user.create_with_id(request.get_json().get('user_id'))
+        group.create_with_id(request.get_json().get('group_id'))
+        if group.is_admin(admin.id):
+            if user.delete_group_from_lists(group.id) and group.delete_person(user.id):
+                return jsonify({
+                    'status': 'success'
+                }), 200
+            else:
+                return jsonify({
                 'status': 'error'
             }), 500
+        else:
+            return jsonify({
+                'status': 'error'
+            }), 403
+    except:
+        return jsonify({
+            'status': 'error'
+        }), 500
 
 
 @app.route('/api/groups/create', methods=['POST'])

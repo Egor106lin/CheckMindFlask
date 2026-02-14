@@ -296,6 +296,12 @@ class Group():
             # Ошибка?
             pass
 
+    def is_admin(self, id):
+        if id in self.admins:
+            return True
+        else:
+            return False
+
 
 class Test():
     def __init__(self):
