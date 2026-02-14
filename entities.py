@@ -35,6 +35,7 @@ class User():
             self.access_token = user_data.access_token
             self.refresh_token = user_data.refresh_token
             self.token_expiry = user_data.token_expiry
+            return True
     
     def create_with_token(self, access_token):
         if not access_token:
@@ -258,6 +259,26 @@ class Group():
             return TestModel.query.get(id)
         else:
             pass
+
+    def get_members(self):
+        users, admins = [], []
+        for uid in self.users:
+            user = User()
+            if user.create_with_id(uid):
+                users.append({
+                    "name": user.name,
+                    "admin": False,
+                    "id": user.id
+                })
+        for aid in self.admins:
+            admin = User()
+            if admin.create_with_id(aid):
+                admins.append({
+                    "name": admin.name,
+                    "admin": True,
+                    "id": admin.id
+                })
+        return users + admins
 
     def change_users_limit(self, admin_id, limit=40):
         print(admin_id, limit)

@@ -348,15 +348,17 @@ def groups_get_list():
         }), 500
     
 
-@app.route('/api/groups/get_members', methods=['GET'])
+@app.route('/api/groups/get_members', methods=['POST'])
 @login_required()
 def groups_get_members():
     try:
-        print(request.args.get('params[groupID]'))
+        group = Group()
+        group.create_with_id(request.get_json()['group_id'])
+        data = group.get_members()
         return jsonify({
             "status": "success", 
             "message": "Данные успешно отправлены",
-            "data": '[{"number":1,"name":"Том","admin":true},{"number":2,"name":"Том"},{"number":3,"name":"Том","admin":true},{"number":4,"name":"Том"}]'
+            "data": data
         }), 200
         
     except Exception as e:
