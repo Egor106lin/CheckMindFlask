@@ -1,12 +1,10 @@
 import requests
 
 from flask import Flask, make_response, request, jsonify, abort, redirect
-from aiohttp import ClientSession
 
-from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
-from models import UserModel, TestModel, UserGroupModel
+from models import TestModel
 from entities import User, Group, Test
 
 from service.db_init import db
@@ -14,7 +12,6 @@ from service.generate_links import generate_google_url
 from service.config import settings
 from service.jwt_service import jwt_decode, jwt_encode
 from service.create_user import create_user
-from service.update_access_token import update_access_token
 from service.login_required import login_required
 
 import json, jwt
@@ -177,6 +174,28 @@ def test_questions_and_options():
             "message": str(e)
         }), 400
     
+
+@app.route('/api/tests/get_groups_to_create_test', methods=['GET'])
+@login_required()
+def test_get_groups_to_create_test():
+    try:
+        user = User()
+        if user.create_with_token(request.cookies.get('access_token')):
+            result = user.get_groups_for_creating_test()
+            return jsonify({
+                "status": "success",
+                "groups": result
+            }), 200
+        else:
+            return jsonify({
+                "status": "error"
+            }), 500
+    except:
+        return jsonify({
+            "status": "error"
+        }), 500
+
+
 
 @app.route('/api/tests/check_answers', methods=['POST'])
 @login_required()

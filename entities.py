@@ -36,10 +36,12 @@ class User():
             self.refresh_token = user_data.refresh_token
             self.token_expiry = user_data.token_expiry
             return True
+        else:
+            return False
     
     def create_with_token(self, access_token):
         if not access_token:
-            return None
+            return False
         
         user_data = UserModel.query.filter_by(access_token=access_token).first()
         
@@ -54,6 +56,9 @@ class User():
             self.access_token = user_data.access_token
             self.refresh_token = user_data.refresh_token
             self.token_expiry = user_data.token_expiry
+            return True
+        else:
+            return False
 
     def update_user_in_db(self):
         user_to_update = UserModel.query.get(self.id)
@@ -115,6 +120,17 @@ class User():
             return True
         else:
             return False
+        
+    def get_groups_for_creating_test(self):
+        result = []
+        for i in self.groups_admin_of:
+            group = Group()
+            if group.create_with_id(i):
+                result.append({
+                    "name": group.title,
+                    "id": group.id
+                })
+        return result
 
 
 class Group():
