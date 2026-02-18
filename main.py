@@ -204,7 +204,9 @@ def test_check_answers():
         test_to_check = Test()
         request_data = request.get_json()
         test_to_check.create_with_id(request_data['test_id'])
-        return jsonify(test_to_check.check_answers(request_data['user_answers'])), 200
+        user = User()
+        user.create_with_token(request.cookies.get('access_token'))
+        return jsonify(test_to_check.check_answers(request_data['user_answers'], user.name)), 200
         
     except Exception as e:
         print(f"Ошибка при обработке запроса: {e}")
@@ -350,7 +352,8 @@ def groups_get_list():
                     'questions_quantity': len(j.questions),
                     'archived': not j.is_visible,
                     'id': j.id,
-                    'points': j.users_max_score
+                    'points': j.users_max_score,
+                    'attempts': j.users_attempts
                 })
             groups_admin_of.append({
                 'id': group_to_show.id,

@@ -5,8 +5,7 @@ from service.db_init import db
 from service.test_data_processor import TestDataProcessor
 
 import json
-
-
+from datetime import datetime
 class User():
     def __init__(self, user_id=None):
         self.id = None
@@ -360,8 +359,8 @@ class Test():
         self.is_visible = False
         self.questions = []
         self.answers = []
-        self.users_max_score = {}
-        self.users_attempts = {}
+        self.users_max_score = []
+        self.users_attempts = []
 
     def create_new(self, test_data: dict):
         try:
@@ -438,7 +437,7 @@ class Test():
             "questionsAndOptions": frontend_questions
         }
     
-    def check_answers(self, user_answers: list):
+    def check_answers(self, user_answers: list, user_name: str):
         score = 0
         max_score = 0
         detailed_results = []
@@ -469,6 +468,14 @@ class Test():
                 'maxPoints': points_per_question
             })
         
+        current_time = datetime.now()
+        formatted_time = current_time.strftime("%d.%m.%Y %H.%M")
+        self.users_attempts.append({
+            "name": user_name,
+            "points": score,
+            "time": formatted_time
+        })
+        self.update_test_in_db()
         return {
             'testName': self.title,
             'userScore': score,

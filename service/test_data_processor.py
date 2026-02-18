@@ -53,7 +53,7 @@ class TestDataProcessor:
             "questions": questions_for_db,
             "answers": answers_for_db,
             "users_max_score": max_score,
-            "users_attempts": 0,
+            "users_attempts": [],
             "is_visible": True
         }
     

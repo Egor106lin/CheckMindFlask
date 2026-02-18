@@ -24,7 +24,7 @@ class TestModel(db.Model):
     questions = db.Column(db.JSON)
     answers = db.Column(db.JSON)
     users_max_score = db.Column(db.Integer)
-    users_attempts = db.Column(db.Integer)
+    users_attempts = db.Column(db.JSON)
     
 
 class UserGroupModel(db.Model):
