@@ -135,15 +135,21 @@ def test_created_test():
         data = request.get_json()
         new_test = Test()
         new_test.create_new(data)
-        tests = TestModel.query.all()
+        user = User()
+        user.create_with_token(request.cookies.get('access_token'))
         group_with_this_test = Group()
         group_with_this_test.create_with_id(data['groupID'])
-        group_with_this_test.add_test(new_test.id)
-        return jsonify({
-            "status": "success", 
-            "message": "Данные успешно получены",
-            "received_data": data
-        }), 200
+        if group_with_this_test.is_admin(user.id):
+            group_with_this_test.add_test(new_test.id)
+            return jsonify({
+                "status": "success", 
+                "message": "Данные успешно получены",
+                "received_data": data
+            }), 200
+        else:
+            return jsonify({
+                "status": "error",
+            }), 403
         
     except Exception as e:
         print(f"Ошибка при обработке запроса: {e}")
