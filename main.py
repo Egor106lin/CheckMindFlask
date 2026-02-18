@@ -350,7 +350,7 @@ def groups_get_list():
                     'questions_quantity': len(j.questions),
                     'archived': not j.is_visible,
                     'id': j.id,
-                    'points': 27
+                    'points': j.users_max_score
                 })
             groups_admin_of.append({
                 'id': group_to_show.id,
@@ -376,7 +376,7 @@ def groups_get_list():
                         'test_description': m.description,
                         'questions_quantity': len(m.questions),
                         'id': m.id,
-                        'points': 27
+                        'points': m.users_max_score
                     })
             groups_user_of.append({
                 'id': group_to_show.id,
