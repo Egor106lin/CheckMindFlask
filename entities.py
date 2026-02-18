@@ -74,6 +74,16 @@ class User():
         user_to_update.token_expiry=self.token_expiry
         db.session.commit()
 
+    def delete_from_db(self):
+        try:
+            user_to_delete = UserModel.query.get(self.id)
+            db.session.delete(user_to_delete)
+            db.session.commit()
+            return True
+        except:
+            db.session.rollback()
+            return False
+
     def add_group_admin_of(self, group_id):
         if group_id not in self.groups_admin_of:
             self.groups_admin_of.append(group_id)

@@ -299,6 +299,34 @@ def profile_leave():
     return resp
 
 
+@app.route('/api/profile/delete')
+@login_required()
+def profile_delete():
+    try:
+        user = User()
+        if user.create_with_token(request.cookies.get('access_token')):
+            for i in user.groups_admin_of:
+                group = Group()
+                if group.create_with_id(i):
+                    group.delete_person(user.id)
+            for j in user.groups_user_of:
+                group = Group()
+                if group.create_with_id(j):
+                    group.delete_user(user.id)
+            if user.delete_from_db():
+                return jsonify({
+                    'status': 'success'
+                }), 200
+            else:
+                return jsonify({
+                    'status': 'error'
+                }), 500
+    except:
+        return jsonify({
+            'status': 'error'
+        }), 500
+
+
 @app.route('/api/groups/get_list', methods=['GET'])
 @login_required()
 def groups_get_list():
