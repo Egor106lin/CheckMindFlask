@@ -23,7 +23,7 @@ def auth_google():
             'client_secret': settings.GOOGLE_CLIENT_SECRET,
             'code': request.values['code'],
             'grant_type': 'authorization_code',
-            'redirect_uri': 'http://localhost:5000/api/auth/google'
+            'redirect_uri': 'https://checkmind.nsforth.online/api/auth/google'
         }
         response = requests.post(
             url="https://oauth2.googleapis.com/token",
@@ -36,7 +36,14 @@ def auth_google():
         user_data['refresh_token'] = res['refresh_token']
         create_user(user_data, 'Google')
         response = redirect(f'{settings.FRONTEND_URL}/profile')
-        response.set_cookie('access_token', user_data['access_token'], httponly=True)
+        response.set_cookie(
+            'access_token', 
+            user_data['access_token'], 
+            httponly=True, 
+            secure=True,
+            samesite='Lax',
+            path='/'
+        )
         return response
     except Exception as e:
         import traceback

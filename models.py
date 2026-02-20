@@ -2,7 +2,7 @@ from service.db_init import db
 
 class UserModel(db.Model):
     __tablename__ = "Users"
-    id = db.Column(db.String(50), primary_key=True)
+    id = db.Column(db.String(255), primary_key=True)
     name = db.Column(db.String(50))
     groups_admin_of = db.Column(db.JSON)
     groups_user_of = db.Column(db.JSON)

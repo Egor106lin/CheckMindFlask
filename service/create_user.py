@@ -1,5 +1,6 @@
 from models import UserModel
 from service.db_init import db
+from flask import current_app
 
 def create_user(data: dict, provider: str):
     try:
@@ -29,4 +30,4 @@ def create_user(data: dict, provider: str):
             db.session.add(user)
         db.session.commit()
     except Exception as e:
-        print(e)
+        current_app.logger.error(f"Failed to create/update user: {e}", exc_info=True)

@@ -1,9 +1,7 @@
-from pydantic_core import Url
 import requests
 from service.config import settings
 from models import UserModel
 from service.db_init import db
-import json
 
 def update_access_token(access_token: str, refresh_token: str):
     try:
@@ -16,10 +14,17 @@ def update_access_token(access_token: str, refresh_token: str):
         response = requests.post(
             url="https://oauth2.googleapis.com/token",
             data=data,
-            headers={'content_type': 'application/x-www-form-urlencoded'}
+            headers={'Content-Type': 'application/x-www-form-urlencoded'}
         )
-        user = UserModel.query.filter_by(access_token=access_token)
-        user.access_token = json.loads(response.text)['access_token']
-        db.session.commit()
+        response.raise_for_status()
+        new_token = response.json()['access_token']
+        user = UserModel.query.filter_by(access_token=access_token).first()
+        if user:
+            user.access_token = new_token
+            db.session.commit()
+            return new_token
+        else:
+            print("Пользователь с таким токеном не найден")
+            return None
     except Exception as e:
         print(f'Не удалось обновить access token. Ошибка: \n {str(e)}')
