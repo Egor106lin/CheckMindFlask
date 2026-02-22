@@ -11,7 +11,7 @@ class UserModel(db.Model):
     provider = db.Column(db.String(50))
     access_token = db.Column(db.Text)
     refresh_token = db.Column(db.Text)
-    token_expiry = db.Column(db.Integer)
+    token_expiry = db.Column(db.DateTime, nullable=True)
     
 
 class TestModel(db.Model):
