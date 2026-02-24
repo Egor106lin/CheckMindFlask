@@ -3,3 +3,5 @@ app.db
 .env
 .env.development
 .env.production
+__pycache__/
+*.pyc
