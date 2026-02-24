@@ -1,15 +1,19 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+import os
 
 class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str
     GOOGLE_CLIENT_SECRET: str
     FRONTEND_URL: str
     JOIN_SECRET: str
+    GOOGLE_REDIRECT_URI: str
     model_config = SettingsConfigDict(
-        env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore"
     )
 
-settings = Settings()
+ENV = os.getenv('FLASK_ENV', 'development')
+env_file = '.env.production' if ENV == 'production' else '.env.development'
+
+config = Settings(_env_file=env_file)

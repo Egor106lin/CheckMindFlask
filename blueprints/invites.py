@@ -3,7 +3,7 @@ from entities import User, Group
 
 from service.jwt_service import jwt_encode
 from service.login_required import login_required
-from service.config import settings
+from service.config import config
 
 from datetime import datetime, timedelta
 import jwt
@@ -31,7 +31,7 @@ def generate_invite_url(group_id):
             'purpose': 'group_join'
         }
         token = jwt_encode(invite_data)
-        invite_url = f"{settings.FRONTEND_URL}/join?token={token}"
+        invite_url = f"{config.FRONTEND_URL}/join?token={token}"
         return jsonify({
             "status": "success",
             "invite_url": invite_url
@@ -46,7 +46,7 @@ def accept_invite():
         try:
             token_data = jwt.decode(
                 token,
-                settings.JOIN_SECRET,
+                config.JOIN_SECRET,
                 algorithms=['HS256']
             )
         except jwt.exceptions.ExpiredSignatureError:

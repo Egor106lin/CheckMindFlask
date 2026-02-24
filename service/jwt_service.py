@@ -1,5 +1,5 @@
 from jwt import decode, encode
-from service.config import settings
+from service.config import config
 
 
 def jwt_decode(jwt_string: str, alg: list = ["RS256"]) -> dict:
@@ -10,6 +10,6 @@ def jwt_decode(jwt_string: str, alg: list = ["RS256"]) -> dict:
 def jwt_encode(data) -> str:
     return encode(
         data,
-        settings.JOIN_SECRET,
+        config.JOIN_SECRET,
         algorithm='HS256'
     )

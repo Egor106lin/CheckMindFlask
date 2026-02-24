@@ -1,11 +1,11 @@
-from service.config import settings
+from service.config import config
 from urllib import parse
 
 def generate_google_url(state: str = None) -> str:
     '''This function generate url to redirect user here after button "google"'''
     query_params = {
-        "client_id": settings.GOOGLE_CLIENT_ID,
-        "redirect_uri": "https://checkmind.nsforth.online/api/auth/google",
+        "client_id": config.GOOGLE_CLIENT_ID,
+        "redirect_uri": config.GOOGLE_REDIRECT_URI,
         "response_type": "code",
         "scope": "openid profile email",
         "access_type": "offline",

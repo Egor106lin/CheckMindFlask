@@ -1,5 +1,5 @@
 import requests
-from service.config import settings
+from service.config import config
 from models import UserModel
 from service.db_init import db
 from datetime import datetime, timedelta
@@ -7,8 +7,8 @@ from datetime import datetime, timedelta
 def update_access_token(access_token: str, refresh_token: str):
     try:
         data = {
-            'client_id': settings.GOOGLE_CLIENT_ID,
-            'client_secret': settings.GOOGLE_CLIENT_SECRET,
+            'client_id': config.GOOGLE_CLIENT_ID,
+            'client_secret': config.GOOGLE_CLIENT_SECRET,
             'refresh_token': refresh_token,
             'grant_type': 'refresh_token'
         }
