@@ -36,4 +36,5 @@ def create_user(data: dict, provider: str):
             db.session.add(user)
         db.session.commit()
     except Exception as e:
+        db.session.rollback()
         current_app.logger.error(f"Failed to create/update user: {e}", exc_info=True)
