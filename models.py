@@ -3,11 +3,11 @@ from service.db_init import db
 class UserModel(db.Model):
     __tablename__ = "Users"
     id = db.Column(db.String(255), primary_key=True)
-    name = db.Column(db.String(100))
+    name = db.Column(db.String(50))
     groups_admin_of = db.Column(db.JSON)
     groups_user_of = db.Column(db.JSON)
-    email = db.Column(db.String(254))
-    avatar_url = db.Column(db.Text)
+    email = db.Column(db.String(50))
+    avatar_url = db.Column(db.String(50))
     provider = db.Column(db.String(50))
     access_token = db.Column(db.Text)
     refresh_token = db.Column(db.Text)

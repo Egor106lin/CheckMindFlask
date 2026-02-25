@@ -50,13 +50,17 @@ def accept_invite():
                 algorithms=['HS256']
             )
         except jwt.exceptions.ExpiredSignatureError:
-            return jsonify({"status": "error", "message": "Срок действия приглашения истек"}), 400
+            return jsonify({"status": "error", "message": "Срок действия приглашения истек"}), 200
         except jwt.exceptions.InvalidTokenError:
-            return jsonify({"status": "error", "message": "Недействительное приглашение"}), 400
+            return jsonify({"status": "error", "message": "Недействительное приглашение"}), 200
         group = Group()
         group.create_with_id(token_data['group_id'])
         user = User()
         user.create_with_token(request.cookies.get('access_token'))
+        if user.id in group.users:
+            return jsonify({"status": "error", "message": "Вы уже в этой группе"}), 200
+        if group.is_admin(user.id):
+            return jsonify({"status": "error", "message": "Вы администратор этой группы"}), 200
         if group.add_user(user) and user.add_group_user_of(group.id):
             res = {
                 "title": group.title,
@@ -69,9 +73,9 @@ def accept_invite():
             }), 200
         else:
             return jsonify({
-            "status": "error"
-        }), 200
+                "status": "error"
+            }), 500
     except Exception as e:
         return jsonify({
             "status": "error"
-        }), 200
+        }), 500
