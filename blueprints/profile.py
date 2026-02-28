@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, make_response, abort, g
 from service.login_required import login_required
-from service.update_access_token import update_access_token
+from service.update_access_token import accessTokenUpdater
 from entities import User, Group
 
 profile_bp = Blueprint('profile', __name__)
@@ -10,7 +10,7 @@ profile_bp = Blueprint('profile', __name__)
 @login_required()
 def refresh_token():
     user = g.user
-    new_token = update_access_token(user.access_token, user.refresh_token)
+    new_token = accessTokenUpdater.update_google_access_token(user.access_token, user.refresh_token)
     if not new_token:
         return abort(401)
     
