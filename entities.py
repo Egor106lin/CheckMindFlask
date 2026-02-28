@@ -258,6 +258,9 @@ class Group():
         
     def make_user_admin(self, id):
         return self.delete_user(id) and self.add_admin(id)
+    
+    def make_admin_user(self, id):
+        return self.delete_admin(id) and self.add_user(id)
 
     def delete_group(self, admin_id):
         if admin_id not in self.admins:
@@ -284,13 +287,17 @@ class Group():
                 db.session.rollback()
                 return False
 
-    def change_title(self, admin_id, new_title):
-        print(admin_id)
-        if admin_id in self.admins:
-            self.title = new_title
+    def change_title(self, new_title):
+        if new_title is not None:
+            try:
+                self.title = new_title
+                self.update_group_in_db()
+                return True
+            except:
+                db.session.rollback()
+                return False
         else:
-            # Ошибка?
-            pass
+            return False
     
     def get_test(self, id=None):
         if id is None:

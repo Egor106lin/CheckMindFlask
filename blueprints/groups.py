@@ -205,6 +205,32 @@ def make_member_admin():
         }), 500
 
 
+@groups_bp.route('/rename', methods=['POST'])
+@login_required()
+def rename_group():
+    try:
+        admin, group = User(), Group()
+        admin.create_with_token(request.cookies.get('access_token'))
+        group.create_with_id(request.get_json().get('id'))
+        if group.is_admin(admin.id):
+            if group.change_title(request.get_json().get('title')):
+                return jsonify({
+                    'status': 'success'
+                }), 200
+            else:
+                return jsonify({
+                    'status': 'error'
+                }), 500
+        else:
+            return jsonify({
+                'status': 'error'
+            }), 403
+    except:
+        return jsonify({
+            'status': 'error'
+        }), 500
+
+
 @groups_bp.route('/create', methods=['POST'])
 @login_required()
 def create_group():
