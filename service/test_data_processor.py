@@ -18,7 +18,8 @@ class TestDataProcessor:
                 text=question_input.question,
                 options=options_texts,
                 correct_options=correct_indices,
-                points=points
+                points=points,
+                single_correct=question_input.singleCorrect
             )
             
             processed_questions.append(processed_question)
@@ -32,15 +33,14 @@ class TestDataProcessor:
         max_score: int
     ) -> Dict[str, Any]:
         questions_for_db = []
+        answers_for_db = []
         for q in processed_questions:
             questions_for_db.append({
                 "text": q.text,
                 "options": q.options,
-                "points": q.points
+                "points": q.points,
+                "single_correct": q.single_correct
             })
-        
-        answers_for_db = []
-        for q in processed_questions:
             answers_for_db.append({
                 "correct_options": q.correct_options,
                 "points": q.points

@@ -430,14 +430,13 @@ class Test():
         for i in self.questions:
             frontend_question = {
                 "question": i["text"],
-                "options": [{"title": j} for j in i["options"]]
+                "options": [{"title": opt} for opt in i["options"]],
+                "singleCorrect": i.get("single_correct", False)
             }
             frontend_questions.append(frontend_question)
         
-        test_id = self.id
-        
         return {
-            "testID": test_id,
+            "testID": self.id,
             "questionsQuantity": len(frontend_questions),
             "testName": self.title,
             "testDescription": self.description or "",
