@@ -28,4 +28,4 @@ app.register_blueprint(invites_bp, url_prefix='/api/invite')
 app.register_blueprint(profile_bp, url_prefix='/api/profile')
 
 if __name__ == '__main__':
-    app.run(debug=config.FLASK_DEBUG)
+    app.run(host='0.0.0.0', port=80, debug=True)

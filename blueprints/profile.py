@@ -10,7 +10,10 @@ profile_bp = Blueprint('profile', __name__)
 @login_required()
 def refresh_token():
     user = g.user
-    new_token = accessTokenUpdater.update_google_access_token(user.access_token, user.refresh_token)
+    if user.provider == "Google":
+        new_token = accessTokenUpdater.update_google_access_token(user.access_token, user.refresh_token)
+    elif user.provider == 'VK':
+        new_token = accessTokenUpdater.update_vk_access_token(user.access_token, user.refresh_token)
     if not new_token:
         return abort(401)
     
