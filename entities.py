@@ -355,6 +355,12 @@ class Group():
             return True
         else:
             return False
+        
+    def is_user(self, id):
+        if id in self.users:
+            return True
+        else:
+            return False
 
 
 class Test():

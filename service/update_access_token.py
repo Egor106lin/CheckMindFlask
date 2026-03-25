@@ -5,7 +5,7 @@ from service.db_init import db
 from datetime import datetime, timedelta
 
 class AccessTokenUpdater():
-    def update_google_access_token(access_token: str, refresh_token: str):
+    def update_google_access_token(self, access_token: str, refresh_token: str):
         try:
             data = {
                 'client_id': config.GOOGLE_CLIENT_ID,
@@ -36,15 +36,18 @@ class AccessTokenUpdater():
             print(f'Не удалось обновить access token. Ошибка: \n {str(e)}')
             return None
         
-    def update_vk_access_token(access_token: str, refresh_token: str):
+    def update_vk_access_token(self, access_token: str, refresh_token: str):
         try:
+            user = UserModel.query.filter_by(access_token=access_token).first()
+            if not user:
+                return None
             data = {
                 'client_id': config.VK_CLIENT_ID,
                 'client_secret': config.VK_CLIENT_SECRET,
                 'refresh_token': refresh_token,
+                'device_id': user.device_id,
                 'grant_type': 'refresh_token'
             }
-            user = UserModel.query.filter_by(access_token=access_token).first()
             response = requests.post(
                 url="https://id.vk.ru/oauth2/auth",
                 data=data,
@@ -63,7 +66,7 @@ class AccessTokenUpdater():
             db.session.commit()
             return new_token
         except Exception as e:
-            print(f'Не удалось обновить VK access token. Ошибка: \n {str(e)}')
+            print(f'Не удалось обновить VK access token. Ошибка: {str(e)}')
             return None
         
         

@@ -107,6 +107,7 @@ def exchange_vk_code():
             'picture': user_info.get('avatar'),
             'access_token': access_token,
             'refresh_token': refresh_token,
+            'device_id': device_id,
             'token_expiry': expires_in
         }
         create_user(user_data, 'VK')

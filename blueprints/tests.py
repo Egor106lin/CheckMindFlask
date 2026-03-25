@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, g, request, jsonify
 from service.login_required import login_required
 from entities import User, Test, Group
 
@@ -41,13 +41,20 @@ def test_questions_and_options():
     try:
         request_data = request.get_json()['params']
         test_id = request_data['test_id']
+        user = g.user
         test_to_send = Test()
         test_to_send.create_with_id(test_id)
-        return jsonify({
-            "status": "success", 
-            "message": "Данные успешно отправлены",
-            "data": test_to_send.to_frontend_format()
-        }), 200
+        group_with_test = Group()
+        if group_with_test.create_with_id(test_to_send.groups[0]):
+            if group_with_test.is_user(user.id) and test_to_send.is_visible:
+                return jsonify({
+                    "status": "success", 
+                    "data": test_to_send.to_frontend_format()
+                }), 200
+            else:
+                return jsonify({
+                    "status": "error",
+                }), 403
         
     except Exception as e:
         print(f"Ошибка при обработке запроса: {e}")

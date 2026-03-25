@@ -11,6 +11,7 @@ class UserModel(db.Model):
     provider = db.Column(db.String(50))
     access_token = db.Column(db.Text)
     refresh_token = db.Column(db.Text)
+    device_id = db.Column(db.String(256), nullable=True)
     token_expiry = db.Column(db.DateTime, nullable=True)
     
 

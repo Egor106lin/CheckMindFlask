@@ -90,11 +90,16 @@ def groups_get_members():
         group.create_with_id(request.get_json()['group_id'])
         user.create_with_token(request.cookies.get('access_token'))
         data = group.get_members(user.id)
-        return jsonify({
-            "status": "success", 
-            "message": "Данные успешно отправлены",
-            "data": data
-        }), 200
+        if group.is_admin(user.id):
+            return jsonify({
+                "status": "success", 
+                "message": "Данные успешно отправлены",
+                "data": data
+            }), 200
+        else:
+            return jsonify({
+                "status": "error"
+            }), 403
         
     except Exception as e:
         print(f"Ошибка при обработке запроса: {e}")

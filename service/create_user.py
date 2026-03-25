@@ -19,6 +19,7 @@ def create_user(data: dict, provider: str):
             user.provider = provider
             user.access_token = data.get('access_token')
             user.refresh_token = data.get('refresh_token')
+            user.device_id = data.get('device_id')
             user.token_expiry = token_expiry
         else:
             user = UserModel(
@@ -31,6 +32,7 @@ def create_user(data: dict, provider: str):
                 groups_user_of=[],
                 access_token=data.get('access_token'),
                 refresh_token=data.get('refresh_token'),
+                device_id=data.get('device_id'),
                 token_expiry=token_expiry
             )
             db.session.add(user)
