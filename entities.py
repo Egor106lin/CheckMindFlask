@@ -223,6 +223,11 @@ class Group():
             self.tests.append(id)
         self.update_group_in_db()
 
+    def delete_test(self, id):
+        if id in self.tests:
+            self.tests.remove(id)
+        self.update_group_in_db()
+
     def delete_user(self, id):
         try:
             self.users.remove(id)
@@ -518,6 +523,11 @@ class Test():
         try:
             test_to_delete = TestModel.query.get(self.id)
             db.session.delete(test_to_delete)
+            for i in self.groups:
+                group_with_this_test = Group()
+                group_with_this_test.create_with_id(i)
+                group_with_this_test.delete_test(self.id)
+                group_with_this_test.update_group_in_db()
             db.session.commit()
             return True
         except Exception as e:
