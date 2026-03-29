@@ -1,5 +1,8 @@
-from flask import Blueprint, g, request, jsonify
+from flask import Blueprint, g, request
+
 from service.login_required import login_required
+from service.response_manager import response_manager
+
 from entities import User, Test, Group
 
 tests_bp = Blueprint('tests', __name__)
@@ -17,22 +20,14 @@ def test_created_test():
         group_with_this_test.create_with_id(data['groupID'])
         if group_with_this_test.is_admin(user.id):
             group_with_this_test.add_test(new_test.id)
-            return jsonify({
-                "status": "success", 
-                "message": "Данные успешно получены",
-                "received_data": data
-            }), 200
+            return response_manager.success_200(message=None, data={
+                "receivedData": data
+            })
         else:
-            return jsonify({
-                "status": "error",
-            }), 403
+            return response_manager.error_403()
         
     except Exception as e:
-        print(f"Ошибка при обработке запроса: {e}")
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        }), 400
+        return response_manager.error_500()
 
 
 @tests_bp.route('/questions_and_options', methods=['POST'])
@@ -47,21 +42,12 @@ def test_questions_and_options():
         group_with_test = Group()
         if group_with_test.create_with_id(test_to_send.groups[0]):
             if group_with_test.is_user(user.id) and test_to_send.is_visible:
-                return jsonify({
-                    "status": "success", 
-                    "data": test_to_send.to_frontend_format()
-                }), 200
+                return response_manager.success_200(message=None, data=test_to_send.to_frontend_format())
             else:
-                return jsonify({
-                    "status": "error",
-                }), 403
+                return response_manager.error_403()
         
     except Exception as e:
-        print(f"Ошибка при обработке запроса: {e}")
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        }), 400
+        return response_manager.error_500()
     
 
 @tests_bp.route('/get_groups_to_create_test', methods=['GET'])
@@ -71,19 +57,13 @@ def test_get_groups_to_create_test():
         user = User()
         if user.create_with_token(request.cookies.get('access_token')):
             result = user.get_groups_for_creating_test()
-            return jsonify({
-                "status": "success",
+            return response_manager.success_200(message=None, data={
                 "groups": result
-            }), 200
+            })
         else:
-            return jsonify({
-                "status": "error"
-            }), 500
+            return response_manager.error_404()
     except:
-        return jsonify({
-            "status": "error"
-        }), 500
-
+        return response_manager.error_500()
 
 
 @tests_bp.route('/check_answers', methods=['POST'])
@@ -95,14 +75,10 @@ def test_check_answers():
         test_to_check.create_with_id(request_data['test_id'])
         user = User()
         user.create_with_token(request.cookies.get('access_token'))
-        return jsonify(test_to_check.check_answers(request_data['user_answers'], user.name)), 200
+        return response_manager.success_200(message=None, data=test_to_check.check_answers(request_data['user_answers'], user.name))
         
     except Exception as e:
-        print(f"Ошибка при обработке запроса: {e}")
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        }), 400
+        return response_manager.error_500()
     
 
 @tests_bp.route('/delete', methods=['POST'])
@@ -113,18 +89,12 @@ def test_delete():
         test = Test()
         test.create_with_id(test_id)
         if test.delete_test():
-            return jsonify({
-                "status": "success"
-            }), 200
+            return response_manager.success_200()
         else:
-            return jsonify({
-                "status": "error"
-            }), 500
+            return response_manager.error_500()
     except Exception as e:
-        return jsonify({
-            "status": "error"
-        }), 500
-    
+        return response_manager.error_500()
+
 
 @tests_bp.route('/archive', methods=['POST'])
 @login_required()
@@ -134,17 +104,11 @@ def test_archive():
         test = Test()
         test.create_with_id(test_id)
         if test.archive_test():
-            return jsonify({
-                "status": "success"
-            }), 200
+            return response_manager.success_200()
         else:
-            return jsonify({
-                "status": "error"
-            }), 500
+            return response_manager.error_500()
     except Exception as e:
-        return jsonify({
-            "status": "error"
-        }), 500
+        return response_manager.error_500()
     
 
 @tests_bp.route('/dearchive', methods=['POST'])
@@ -155,14 +119,8 @@ def test_dearchive():
         test = Test()
         test.create_with_id(test_id)
         if test.dearchive_test():
-            return jsonify({
-                "status": "success"
-            }), 200
+            return response_manager.success_200()
         else:
-            return jsonify({
-                "status": "error"
-            }), 500
+            return response_manager.error_500()
     except Exception as e:
-        return jsonify({
-            "status": "error"
-        }), 500
+        return response_manager.error_500()

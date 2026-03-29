@@ -1,6 +1,9 @@
-from flask import Blueprint, request, jsonify, make_response, abort, g
+from flask import Blueprint, request, abort, g, make_response
+
 from service.login_required import login_required
 from service.update_access_token import accessTokenUpdater
+from service.response_manager import response_manager
+
 from entities import User, Group
 
 profile_bp = Blueprint('profile', __name__)
@@ -17,7 +20,7 @@ def refresh_token():
     if not new_token:
         return abort(401)
     
-    response = make_response(jsonify({"status": "ok"}))
+    response = response_manager.success_200()
     response.set_cookie(
         'access_token',
         new_token,
@@ -34,13 +37,13 @@ def refresh_token():
 def profile_user_data():
     user_data = User()
     user_data.create_with_token(request.cookies.get('access_token'))
-    return jsonify({
+    return response_manager.success_200(message=None, data={
         "name": user_data.name,
         "provider": user_data.provider,
         "avatar_url": user_data.avatar_url,
         "email": user_data.email,
         "id": user_data.id
-    }), 200
+    })
 
 
 @profile_bp.route('/leave', methods=['GET'])
@@ -66,14 +69,8 @@ def profile_delete():
                 if group.create_with_id(j):
                     group.delete_user(user.id)
             if user.delete_from_db():
-                return jsonify({
-                    'status': 'success'
-                }), 200
+                return response_manager.success_200()
             else:
-                return jsonify({
-                    'status': 'error'
-                }), 500
+                return response_manager.error_500()
     except:
-        return jsonify({
-            'status': 'error'
-        }), 500
+        return response_manager.error_500()

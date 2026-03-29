@@ -1,6 +1,8 @@
-from flask import Blueprint, request, jsonify
-from service.login_required import login_required
+from flask import Blueprint, request
 from entities import User, Group
+
+from service.login_required import login_required
+from service.response_manager import response_manager
 
 groups_bp = Blueprint('groups', __name__)
 
@@ -66,20 +68,21 @@ def groups_get_list():
                 'indexForFirstTest': 0,
                 'indexForLastTest': 3
             })
-
-        return {
-            "status": "success", 
-            "message": "Данные успешно отправлены",
-            "adminGroupsData": groups_admin_of,
-            "userGroupsData": groups_user_of
-        }, 200
+    
+        return response_manager.success_200(
+            {
+                "ru-RU": "Данные успешно отправлены",
+                "en-US": "The data has been sent successfully"
+            },
+            {
+                "adminGroupsData": groups_admin_of,
+                "userGroupsData": groups_user_of
+            }
+        )
         
     except Exception as e:
         print(f"Ошибка при обработке запроса: {e}")
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        }), 500
+        return response_manager.error_500()
     
 
 @groups_bp.route('/get_members', methods=['POST'])
@@ -91,22 +94,19 @@ def groups_get_members():
         user.create_with_token(request.cookies.get('access_token'))
         data = group.get_members(user.id)
         if group.is_admin(user.id):
-            return jsonify({
-                "status": "success", 
-                "message": "Данные успешно отправлены",
-                "data": data
-            }), 200
+            return response_manager.success_200(
+                {
+                    "ru-RU": "Данные успешно отправлены",
+                    "en-US": "The data has been sent successfully"
+                },
+                data
+            )
         else:
-            return jsonify({
-                "status": "error"
-            }), 403
+            return response_manager.error_403()
         
     except Exception as e:
         print(f"Ошибка при обработке запроса: {e}")
-        return jsonify({
-            "status": "error",
-            "message": str(e)
-        }), 400
+        return response_manager.error_500()
    
 
 @groups_bp.route('/delete', methods=['POST'])
@@ -117,19 +117,18 @@ def delete_group():
         group = Group()
         user.create_with_token(request.cookies.get('access_token'))
         group.create_with_id(request.get_json())
-        res = group.delete_group(user.id)
-        if res:
-            return jsonify({
-                'status': 'success'
-            }), 200
+        if group.delete_group(user.id):
+            return response_manager.success_200(
+                {
+                    "ru-RU": "Группа успешно удалена",
+                    "en-US": "The group was successfully deleted"
+                }
+            )
         else:
-            return jsonify({
-                'status': 'error'
-            }), 500
+            return response_manager.error_500()
+
     except:
-        return jsonify({
-            'status': 'error'
-        }), 500
+        return response_manager.error_500()
 
 
 @groups_bp.route('/leave', methods=['POST'])
@@ -142,18 +141,16 @@ def leave_group():
         user.create_with_token(request.cookies.get('access_token'))
         if group.delete_person(user.id):
             user.delete_group_from_lists(group_id)
-            return jsonify({
-                "status": "success", 
-                "message": "Группа покинута",
-            }), 200
+            return response_manager.success_200(
+                {
+                    "ru-RU": "Группа покинута",
+                    "en-US": "The group is abandoned"
+                }
+            )
         else:
-            return jsonify({
-                'status': 'error'
-            }), 500
+            return response_manager.error_500()
     except:
-        return jsonify({
-            'status': 'error'
-        }), 500
+        return response_manager.error_500()
     
 
 @groups_bp.route('/delete_member', methods=['POST'])
@@ -166,21 +163,18 @@ def delete_member():
         group.create_with_id(request.get_json().get('group_id'))
         if group.is_admin(admin.id):
             if user.delete_group_from_lists(group.id) and group.delete_person(user.id):
-                return jsonify({
-                    'status': 'success'
-                }), 200
+                return response_manager.success_200(
+                    {
+                        "ru-RU": "Участник группы удалён",
+                        "en-US": "Group member deleted"
+                    }
+                )
             else:
-                return jsonify({
-                'status': 'error'
-            }), 500
+                return response_manager.error_500()
         else:
-            return jsonify({
-                'status': 'error'
-            }), 403
+            return response_manager.error_403()
     except:
-        return jsonify({
-            'status': 'error'
-        }), 500
+        return response_manager.error_500()
     
 
 @groups_bp.route('/make_member_admin', methods=['POST'])
@@ -193,21 +187,18 @@ def make_member_admin():
         group.create_with_id(request.get_json().get('group_id'))
         if group.is_admin(admin.id):
             if user.change_group_user_admin(group.id) and group.make_user_admin(user.id):
-                return jsonify({
-                    'status': 'success'
-                }), 200
+                return response_manager.success_200(
+                    {
+                        "ru-RU": "Участник группы стал администратором",
+                        "en-US": "The group member became an administrator"
+                    }
+                )
             else:
-                return jsonify({
-                'status': 'error'
-            }), 500
+                return response_manager.error_500()
         else:
-            return jsonify({
-                'status': 'error'
-            }), 403
+            return response_manager.error_403()
     except:
-        return jsonify({
-            'status': 'error'
-        }), 500
+        return response_manager.error_500()
 
 
 @groups_bp.route('/rename', methods=['POST'])
@@ -219,21 +210,18 @@ def rename_group():
         group.create_with_id(request.get_json().get('id'))
         if group.is_admin(admin.id):
             if group.change_title(request.get_json().get('title')):
-                return jsonify({
-                    'status': 'success'
-                }), 200
+                return response_manager.success_200(
+                    {
+                        "ru-RU": "Группа переименована",
+                        "en-US": "The group was renamed"
+                    }
+                )
             else:
-                return jsonify({
-                    'status': 'error'
-                }), 500
+                return response_manager.error_500()
         else:
-            return jsonify({
-                'status': 'error'
-            }), 403
+            return response_manager.error_403()
     except:
-        return jsonify({
-            'status': 'error'
-        }), 500
+        return response_manager.error_500()
 
 
 @groups_bp.route('/create', methods=['POST'])
@@ -248,18 +236,19 @@ def create_group():
             success, new_group_id = group_to_create.create_new(group_title, user.id)
             user.add_group_admin_of(new_group_id)
         if success:
-            return jsonify({
-                "status": "success", 
-                "message": f"Группа '{group_to_create.title}' создана!",
-            }), 200
+            return response_manager.success_200(
+                    {
+                        "ru-RU": f"Группа '{group_title}' была создана",
+                        "en-US": f"The group '{group_title}' was created"
+                    }
+                )
         else:
-            return jsonify({
-                "status": "danger", 
-                "message": f"Группа '{group_to_create.title}' не была создана, что-то пошло не так",
-            }), 200
+            return response_manager.error_500(
+                    {
+                        "ru-RU": f"Что-то пошло не так, группа '{group_title}' не была создана",
+                        "en-US": f"Something went wrong, and the '{group_title}' group was not created"
+                    }
+                )
     except Exception as e:
         print(e)
-        return jsonify({
-            "status": "error",
-            "message": "Что-то пошло не так"
-        }), 500
+        return response_manager.error_500()
