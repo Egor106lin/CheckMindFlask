@@ -40,3 +40,4 @@ def create_user(data: dict, provider: str):
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Failed to create/update user: {e}", exc_info=True)
+        

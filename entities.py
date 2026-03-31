@@ -3,9 +3,10 @@ from schemas import TestCreateInputSchema
 
 from service.db_init import db
 from service.test_data_processor import TestDataProcessor
+from service.exceptions import NotFoundError, DatabaseError, ConflictError, ValidationError
 
-import json
 from datetime import datetime
+
 class User():
     def __init__(self, user_id=None, access_token=None):
         self.id = None
@@ -36,13 +37,10 @@ class User():
             self.access_token = user_data.access_token
             self.refresh_token = user_data.refresh_token
             self.token_expiry = user_data.token_expiry
-            return True
         else:
-            return False
+            raise NotFoundError()
     
     def create_with_token(self, access_token):
-        if not access_token:
-            return False
         user_data = UserModel.query.filter_by(access_token=access_token).first()
         if user_data:
             self.id = user_data.id
@@ -55,92 +53,100 @@ class User():
             self.access_token = user_data.access_token
             self.refresh_token = user_data.refresh_token
             self.token_expiry = user_data.token_expiry
-            return True
         else:
-            return False
+            raise NotFoundError()
 
     def update_user_in_db(self):
         user_to_update = UserModel.query.get(self.id)
-        user_to_update.id=self.id
-        user_to_update.name=self.name
-        user_to_update.email=self.email
-        user_to_update.avatar_url=self.avatar_url
-        user_to_update.provider=self.provider
-        user_to_update.groups_admin_of=self.groups_admin_of
-        user_to_update.groups_user_of=self.groups_user_of
-        user_to_update.access_token=self.access_token
-        user_to_update.refresh_token=self.refresh_token
-        user_to_update.token_expiry=self.token_expiry
-        db.session.commit()
+        if user_to_update:
+            user_to_update.id=self.id
+            user_to_update.name=self.name
+            user_to_update.email=self.email
+            user_to_update.avatar_url=self.avatar_url
+            user_to_update.provider=self.provider
+            user_to_update.groups_admin_of=self.groups_admin_of
+            user_to_update.groups_user_of=self.groups_user_of
+            user_to_update.access_token=self.access_token
+            user_to_update.refresh_token=self.refresh_token
+            user_to_update.token_expiry=self.token_expiry
+            db.session.commit()
+        else:
+            db.session.rollback()
+            raise NotFoundError()
 
     def delete_from_db(self):
         try:
             user_to_delete = UserModel.query.get(self.id)
-            db.session.delete(user_to_delete)
-            db.session.commit()
-            return True
+            if user_to_delete:
+                db.session.delete(user_to_delete)
+                db.session.commit()
+            else:
+                raise NotFoundError()
         except:
             db.session.rollback()
-            return False
+            raise DatabaseError()
 
     def add_group_admin_of(self, group_id):
         if group_id not in self.groups_admin_of:
             self.groups_admin_of.append(group_id)
             self.update_user_in_db()
+        else:
+            raise ConflictError()
 
     def add_group_user_of(self, group_id):
         if group_id not in self.groups_user_of:
             self.groups_user_of.append(group_id)
             self.update_user_in_db()
-            return True
         else:
-            return False
+            raise ConflictError()
 
     def delete_group_admin_of(self, group_id):
         if group_id in self.groups_admin_of:
             self.groups_admin_of.remove(group_id)
             self.update_user_in_db()
+        else:
+            raise ConflictError()
 
     def delete_group_user_of(self, group_id):
         if group_id in self.groups_user_of:
             self.groups_user_of.remove(group_id)
             self.update_user_in_db()
+        else:
+            raise ConflictError()
 
     def delete_group_from_lists(self, group_id):
         if group_id in self.groups_admin_of:
             self.delete_group_admin_of(group_id)
             self.update_user_in_db()
-            return True
         elif group_id in self.groups_user_of:
             self.delete_group_user_of(group_id)
             self.update_user_in_db()
-            return True
         else:
-            return False
+            raise ConflictError()
         
     def change_group_user_admin(self, group_id):
         if group_id in self.groups_admin_of:
             self.groups_admin_of.remove(group_id)
             self.groups_user_of.append(group_id)
             self.update_user_in_db()
-            return True
         elif group_id in self.groups_user_of:
             self.groups_user_of.remove(group_id)
             self.groups_admin_of.append(group_id)
             self.update_user_in_db()
-            return True
         else:
-            return False
+            raise ConflictError()
         
     def get_groups_for_creating_test(self):
         result = []
         for i in self.groups_admin_of:
-            group = Group()
-            if group.create_with_id(i):
+            try:
+                group = Group(group_id=i)
                 result.append({
                     "name": group.title,
                     "id": group.id
                 })
+            except NotFoundError:
+                continue
         return result
 
 
@@ -157,7 +163,38 @@ class Group():
         if group_id:
             self.create_with_id(group_id)
 
+    def create_with_id(self, id):
+        new_group = UserGroupModel.query.get(id)
+        if not new_group:
+            raise NotFoundError()
+        self.id = new_group.id
+        self.title = new_group.title
+        self.size = new_group.size
+        self.admins = new_group.admins
+        self.users = new_group.users
+        self.tests = new_group.tests
+        self.users_limit = new_group.users_limit
+        self.admins_limit = new_group.admins_limit
+
+    def update_group_in_db(self):
+        group_to_update = UserGroupModel.query.get(self.id)
+        if group_to_update:
+            group_to_update.id=self.id
+            group_to_update.title=self.title
+            group_to_update.size=self.size
+            group_to_update.tests=self.tests
+            group_to_update.admins=self.admins
+            group_to_update.users=self.users
+            group_to_update.users_limit=self.users_limit
+            group_to_update.admins_limit=self.admins_limit
+            db.session.commit()
+        else:
+            db.session.rollback()
+            raise NotFoundError()
+
     def create_new(self, title, first_admin_id):
+        if not title or not first_admin_id:
+            raise NotFoundError()
         self.title = title
         self.admins.append(first_admin_id)
         self.size += 1
@@ -174,106 +211,77 @@ class Group():
             )
             db.session.add(new_group)
             db.session.commit()
-            return True, new_group.id
+            return new_group.id
         except:
-            return False
-
-    def create_with_id(self, id):
-        new_group = UserGroupModel.query.get(id)
-        if not new_group:
-            return False
-        self.id = new_group.id
-        self.title = new_group.title
-        self.size = new_group.size
-        self.admins = new_group.admins
-        self.users = new_group.users
-        self.tests = new_group.tests
-        self.users_limit = new_group.users_limit
-        self.admins_limit = new_group.admins_limit
-        return True
-
-    def update_group_in_db(self):
-        group_to_update = UserGroupModel.query.get(self.id)
-        group_to_update.id=self.id
-        group_to_update.title=self.title
-        group_to_update.size=self.size
-        group_to_update.tests=self.tests
-        group_to_update.admins=self.admins
-        group_to_update.users=self.users
-        group_to_update.users_limit=self.users_limit
-        group_to_update.admins_limit=self.admins_limit
-        db.session.commit()
+            raise DatabaseError()
 
     def add_user(self, user):
         if self.size <= self.users_limit and user.id not in self.admins and user.id not in self.users:
             self.users.append(user.id)
             self.size += 1
             self.update_group_in_db()
-            return True
         else:
-            return False
+            raise ConflictError()
     
     def add_admin(self, id):
         if len(self.admins) <= self.admins_limit:
             self.admins.append(id)
             self.size += 1
             self.update_group_in_db()
-            return True
         else:
-            return False
+            raise ConflictError()
     
     def add_test(self, id):
         if id not in self.tests:
             self.tests.append(id)
-        self.update_group_in_db()
+            self.update_group_in_db()
+        else:
+            raise ValidationError()
 
     def delete_test(self, id):
         if id in self.tests:
             self.tests.remove(id)
-        self.update_group_in_db()
+            self.update_group_in_db()
+        else:
+            raise ValidationError()
 
     def delete_user(self, id):
-        try:
+        if id in self.users:
             self.users.remove(id)
             self.size -= 1
             self.update_group_in_db()
-            return True
-        except:
-            db.session.rollback()
-            return False
+        else:
+            raise ValidationError()
     
     def delete_admin(self, id):
-        try:
+        if id in self.admins:
             self.admins.remove(id)
             self.size -= 1
             self.update_group_in_db()
-            return True
-        except:
-            db.session.rollback()
-            return False
+        else:
+            raise ValidationError()
 
     def delete_person(self, id):
         if id in self.admins and len(self.admins) == 1:
             self.delete_group(id)
-            return True
         elif id in self.admins:
             self.delete_admin(id)
-            return True
         elif id in self.users:
             self.delete_user(id)
-            return True
         else:
-            return False
+            raise ValidationError()
         
     def make_user_admin(self, id):
-        return self.delete_user(id) and self.add_admin(id)
+        self.delete_user(id)
+        self.add_admin(id)
     
     def make_admin_user(self, id):
-        return self.delete_admin(id) and self.add_user(id)
+        self.delete_admin(id)
+        self.add_user(id)
 
     def delete_group(self, admin_id):
         if admin_id not in self.admins:
-            return False
+            raise ValidationError()
         else:
             try:
                 for i in self.users:
@@ -288,22 +296,23 @@ class Group():
                 group_to_delete = UserGroupModel.query.get(self.id)
                 db.session.delete(group_to_delete)
                 db.session.commit()
-                return True
+            except NotFoundError:
+                db.session.rollback()
+                raise NotFoundError()
             except:
                 db.session.rollback()
-                return False
+                raise DatabaseError()
 
     def change_title(self, new_title):
-        if new_title is not None:
+        if new_title:
             try:
                 self.title = new_title
                 self.update_group_in_db()
-                return True
             except:
                 db.session.rollback()
-                return False
+                raise DatabaseError()
         else:
-            return False
+            raise ValidationError()
     
     def get_test(self, id=None):
         if id is None:
@@ -314,47 +323,55 @@ class Group():
                     tests.append(test)
             return tests
         elif id in self.tests:
-            return TestModel.query.get(id)
+            test = TestModel.query.get(id)
+            if test:
+                return test
+            else:
+                raise NotFoundError()
         else:
-            pass
+            raise ValidationError()
 
     def get_members(self, user_id):
         users, admins = [], []
         for uid in self.users:
-            user = User()
-            if user.create_with_id(uid):
+            try:
+                user = User(user_id=uid)
                 users.append({
                     "name": user.name,
                     "admin": False,
                     "you": user.id == user_id,
                     "id": user.id
                 })
+            except NotFoundError:
+                continue
         for aid in self.admins:
-            admin = User()
-            if admin.create_with_id(aid):
+            try:
+                admin = User(user_id=aid)
                 admins.append({
                     "name": admin.name,
                     "admin": True,
                     "you": admin.id == user_id,
                     "id": admin.id
                 })
+            except NotFoundError:
+                continue
         return users + admins
 
-    def change_users_limit(self, admin_id, limit=40):
-        print(admin_id, limit)
-        if admin_id in self.admins:
-            self.users_limit = limit
-        else:
-            # Ошибка?
-            pass
+    # def change_users_limit(self, admin_id, limit=40):
+    #     print(admin_id, limit)
+    #     if admin_id in self.admins:
+    #         self.users_limit = limit
+    #     else:
+    #         # Ошибка?
+    #         pass
 
-    def change_admins_limit(self, admin_id, limit=40):
-        print(admin_id, limit)
-        if admin_id in self.admins:
-            self.admins_limit = limit
-        else:
-            # Ошибка?
-            pass
+    # def change_admins_limit(self, admin_id, limit=40):
+    #     print(admin_id, limit)
+    #     if admin_id in self.admins:
+    #         self.admins_limit = limit
+    #     else:
+    #         # Ошибка?
+    #         pass
 
     def is_admin(self, id):
         if id in self.admins:
@@ -383,6 +400,36 @@ class Test():
         if test_id is not None:
             self.create_with_id(test_id)
 
+    def create_with_id(self, id):
+        new_test = TestModel.query.get(id)
+        if not new_test:
+            raise NotFoundError()
+        self.id = new_test.id
+        self.title = new_test.title
+        self.description = new_test.description
+        self.groups = new_test.group_ids
+        self.is_visible = new_test.is_visible
+        self.questions = new_test.questions
+        self.answers = new_test.answers
+        self.users_max_score = new_test.users_max_score
+        self.users_attempts = new_test.users_attempts
+
+    def update_test_in_db(self):
+        test_to_update = TestModel.query.get(self.id)
+        if test_to_update:
+            test_to_update.group_ids = self.groups
+            test_to_update.title = self.title
+            test_to_update.description = self.description
+            test_to_update.is_visible = self.is_visible
+            test_to_update.questions = self.questions
+            test_to_update.answers = self.answers
+            test_to_update.users_max_score = self.users_max_score
+            test_to_update.users_attempts = self.users_attempts
+            db.session.commit()
+        else:
+            db.session.rollback()
+            raise NotFoundError()
+
     def create_new(self, test_data: dict):
         try:
             validated_input, processed_questions, max_score = TestDataProcessor.process_input_data(test_data)
@@ -404,40 +451,9 @@ class Test():
             db.session.add(test_in_db)
             db.session.commit()
             self.create_with_id(test_in_db.id)
-            return True
-        except Exception as e:
+        except:
             db.session.rollback()
-            return False
-
-    def create_with_id(self, id):
-        new_test = TestModel.query.get(id)
-        if not new_test:
-            return False
-        self.id = new_test.id
-        self.title = new_test.title
-        self.description = new_test.description
-        self.groups = new_test.group_ids
-        self.is_visible = new_test.is_visible
-        self.questions = new_test.questions
-        self.answers = new_test.answers
-        self.users_max_score = new_test.users_max_score
-        self.users_attempts = new_test.users_attempts
-        return True
-
-    def update_test_in_db(self):
-        test_to_update = TestModel.query.get(self.id)
-        if test_to_update:
-            test_to_update.group_ids = self.groups
-            test_to_update.title = self.title
-            test_to_update.description = self.description
-            test_to_update.is_visible = self.is_visible
-            test_to_update.questions = self.questions
-            test_to_update.answers = self.answers
-            test_to_update.users_max_score = self.users_max_score
-            test_to_update.users_attempts = self.users_attempts
-            db.session.commit()
-            return True
-        return False
+            raise ValidationError()
     
     def to_frontend_format(self):
         frontend_questions = []
@@ -448,7 +464,6 @@ class Test():
                 "singleCorrect": i.get("single_correct", False)
             }
             frontend_questions.append(frontend_question)
-        
         return {
             "testID": self.id,
             "questionsQuantity": len(frontend_questions),
@@ -503,24 +518,29 @@ class Test():
             'detailedResults': detailed_results
         }
 
-    def change_title(self, new_title):
-        self.title = new_title
+    # def change_title(self, new_title):
+    #     self.title = new_title
 
-    def change_description(self, new_description):
-        self.description = new_description
+    # def change_description(self, new_description):
+    #     self.description = new_description
 
-    def change_test(self, questions, answers):
-        self.questions = questions
-        self.answers = answers
+    # def change_test(self, questions, answers):
+    #     self.questions = questions
+    #     self.answers = answers
     
-    def open_for_group(self, group_id):
-        self.groups.append(group_id)
+    # def open_for_group(self, group_id):
+    #     self.groups.append(group_id)
 
     def delete_for_group(self, group_id):
-        if len(self.groups) == 1:
-            self.delete_test()
-        else:
-            self.groups.remove(group_id)
+        try:
+            if len(self.groups) == 1:
+                self.delete_test()
+            else:
+                self.groups.remove(group_id)
+                self.update_test_in_db()
+        except NotFoundError:
+            db.session.rollback()
+            raise NotFoundError()
 
     def delete_test(self):
         try:
@@ -531,38 +551,44 @@ class Test():
                 group_with_this_test.delete_test(self.id)
                 group_with_this_test.update_group_in_db()
             db.session.commit()
-            return True
-        except Exception as e:
+        except ValidationError:
             db.session.rollback()
-            return False
+            raise ValidationError()
+        except NotFoundError:
+            db.session.rollback()
+            raise NotFoundError()
 
     def publish_test(self):
-        self.is_visible = True
-        self.update_test_in_db()
+        try:
+            self.is_visible = True
+            self.update_test_in_db()
+        except NotFoundError:
+            db.session.rollback()
+            raise NotFoundError()
 
     def archive_test(self):
         try:
             self.is_visible = False
             self.update_test_in_db()
-            return True
-        except Exception as e:
-            return False
+        except NotFoundError:
+            db.session.rollback()
+            raise NotFoundError()
         
     def dearchive_test(self):
         try:
             self.is_visible = True
             self.update_test_in_db()
-            return True
-        except Exception as e:
-            return False
+        except NotFoundError:
+            db.session.rollback()
+            raise NotFoundError()
 
-    def update_max_score(self, user_id, max_score):
-        score_now = self.users_max_score.get(user_id)
-        if max_score > score_now:
-            self.users_max_score[user_id] = max_score
-        else:
-            # Ошибка?
-            pass
+    # def update_max_score(self, user_id, max_score):
+    #     score_now = self.users_max_score.get(user_id)
+    #     if max_score > score_now:
+    #         self.users_max_score[user_id] = max_score
+    #     else:
+    #         # Ошибка?
+    #         pass
 
-    def update_attempts(self, user_id):
-        self.users_attempts[user_id] += 1
+    # def update_attempts(self, user_id):
+    #     self.users_attempts[user_id] += 1

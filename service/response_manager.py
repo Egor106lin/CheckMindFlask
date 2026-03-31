@@ -17,8 +17,8 @@ class ResponseManager():
     def error_400(self, message: dict = None) -> Response:
         if message is None:
             message = {
-                'ru-RU': 'Что-то пошло не так',
-                'en-EN': 'Something went wrong'
+                'ru-RU': 'Переданы неверные данные',
+                'en-EN': 'Incorrect data was transmitted'
             }
         return jsonify({
             "status": "error",

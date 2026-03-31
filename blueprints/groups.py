@@ -3,6 +3,7 @@ from entities import User, Group
 
 from service.login_required import login_required
 from service.response_manager import response_manager
+from service.exceptions import *
 
 groups_bp = Blueprint('groups', __name__)
 
@@ -62,7 +63,6 @@ def groups_get_list():
                 'indexForFirstTest': 0,
                 'indexForLastTest': 3
             })
-    
         return response_manager.success_200(
             {
                 "ru-RU": "Данные успешно отправлены",
@@ -73,9 +73,11 @@ def groups_get_list():
                 "userGroupsData": groups_user_of
             }
         )
-        
-    except Exception as e:
-        print(f"Ошибка при обработке запроса: {e}")
+    except ValidationError:
+        return response_manager.error_400()
+    except NotFoundError:
+        return response_manager.error_404()
+    except:
         return response_manager.error_500()
     
 
@@ -93,9 +95,9 @@ def groups_get_members():
             },
             data
         )
-        
-    except Exception as e:
-        print(f"Ошибка при обработке запроса: {e}")
+    except NotFoundError:
+        return response_manager.error_404()
+    except:
         return response_manager.error_500()
    
 
@@ -105,15 +107,19 @@ def delete_group():
     try:
         user = User(access_token=request.cookies.get('access_token'))
         group = Group(group_id=request.get_json())
-        if group.delete_group(user.id):
-            return response_manager.success_200(
-                {
-                    "ru-RU": "Группа успешно удалена",
-                    "en-US": "The group was successfully deleted"
-                }
-            )
-        else:
-            return response_manager.error_500()
+        group.delete_group(user.id)
+        return response_manager.success_200(
+            {
+                "ru-RU": "Группа успешно удалена",
+                "en-US": "The group was successfully deleted"
+            }
+        )
+    except ValidationError:
+        return response_manager.error_400()
+    except NotFoundError:
+        return response_manager.error_404()
+    except DatabaseError:
+        return response_manager.error_500()
     except:
         return response_manager.error_500()
 
@@ -125,16 +131,20 @@ def leave_group():
         group_id = request.get_json()
         group = Group(group_id=group_id)
         user = User(access_token=request.cookies.get('access_token'))
-        if group.delete_person(user.id):
-            user.delete_group_from_lists(group_id)
-            return response_manager.success_200(
-                {
-                    "ru-RU": "Группа покинута",
-                    "en-US": "The group is abandoned"
-                }
-            )
-        else:
-            return response_manager.error_500()
+        group.delete_person(user.id)
+        user.delete_group_from_lists(group_id)
+        return response_manager.success_200(
+            {
+                "ru-RU": "Группа покинута",
+                "en-US": "The group is abandoned"
+            }
+        )
+    except ValidationError:
+        return response_manager.error_400()
+    except NotFoundError:
+        return response_manager.error_404()
+    except ConflictError:
+        return response_manager.error_500()
     except:
         return response_manager.error_500()
     
@@ -147,17 +157,22 @@ def delete_member():
         user = User(user_id=request.get_json().get('user_id'))
         group = Group(group_id=request.get_json().get('group_id'))
         if group.is_admin(admin.id):
-            if user.delete_group_from_lists(group.id) and group.delete_person(user.id):
-                return response_manager.success_200(
-                    {
-                        "ru-RU": "Участник группы удалён",
-                        "en-US": "Group member deleted"
-                    }
-                )
-            else:
-                return response_manager.error_500()
+            user.delete_group_from_lists(group.id)
+            group.delete_person(user.id)
+            return response_manager.success_200(
+                {
+                    "ru-RU": "Участник группы удалён",
+                    "en-US": "Group member deleted"
+                }
+            )
         else:
             return response_manager.error_403()
+    except ValidationError:
+        return response_manager.error_400()
+    except NotFoundError:
+        return response_manager.error_404()
+    except ConflictError:
+        return response_manager.error_500()
     except:
         return response_manager.error_500()
     
@@ -170,17 +185,22 @@ def make_member_admin():
         user = User(user_id=request.get_json().get('user_id'))
         group = Group(group_id=request.get_json().get('group_id'))
         if group.is_admin(admin.id):
-            if user.change_group_user_admin(group.id) and group.make_user_admin(user.id):
-                return response_manager.success_200(
-                    {
-                        "ru-RU": "Участник группы стал администратором",
-                        "en-US": "The group member became an administrator"
-                    }
-                )
-            else:
-                return response_manager.error_500()
+            user.change_group_user_admin(group.id)
+            group.make_user_admin(user.id)
+            return response_manager.success_200(
+                {
+                    "ru-RU": "Участник группы стал администратором",
+                    "en-US": "The group member became an administrator"
+                }
+            )
         else:
             return response_manager.error_403()
+    except ValidationError:
+        return response_manager.error_400()
+    except NotFoundError:
+        return response_manager.error_404()
+    except ConflictError:
+        return response_manager.error_500()
     except:
         return response_manager.error_500()
 
@@ -192,19 +212,24 @@ def rename_group():
         admin = User(access_token=request.cookies.get('access_token'))
         group = Group(group_id=request.get_json().get('id'))
         if group.is_admin(admin.id):
-            if group.change_title(request.get_json().get('title')):
-                return response_manager.success_200(
-                    {
-                        "ru-RU": "Группа переименована",
-                        "en-US": "The group was renamed"
-                    }
-                )
-            else:
-                return response_manager.error_500()
+            group.change_title(request.get_json().get('title'))
+            return response_manager.success_200(
+                {
+                    "ru-RU": "Группа переименована",
+                    "en-US": "The group was renamed"
+                }
+            )
         else:
             return response_manager.error_403()
+    except ValidationError:
+        return response_manager.error_400()
     except:
-        return response_manager.error_500()
+        return response_manager.error_500(
+            {
+                "ru-RU": f"Что-то пошло не так, группа не была переименована",
+                "en-US": f"Something went wrong, and the group was not renamed"
+            }
+        )
 
 
 @groups_bp.route('/create', methods=['POST'])
@@ -212,25 +237,29 @@ def rename_group():
 def create_group():
     try:
         group_title = request.get_json().get('group_title')
-        if group_title:
-            user = User(access_token=request.cookies.get('access_token'))
-            group_to_create = Group()
-            success, new_group_id = group_to_create.create_new(group_title, user.id)
-            user.add_group_admin_of(new_group_id)
-        if success:
-            return response_manager.success_200(
-                    {
-                        "ru-RU": f"Группа '{group_title}' была создана",
-                        "en-US": f"The group '{group_title}' was created"
-                    }
-                )
-        else:
-            return response_manager.error_500(
-                    {
-                        "ru-RU": f"Что-то пошло не так, группа '{group_title}' не была создана",
-                        "en-US": f"Something went wrong, and the '{group_title}' group was not created"
-                    }
-                )
-    except Exception as e:
-        print(e)
-        return response_manager.error_500()
+        user = User(access_token=request.cookies.get('access_token'))
+        group_to_create = Group()
+        new_group_id = group_to_create.create_new(group_title, user.id)
+        user.add_group_admin_of(new_group_id)
+        return response_manager.success_200(
+                {
+                    "ru-RU": f"Группа '{group_title}' была создана",
+                    "en-US": f"The group '{group_title}' was created"
+                }
+            )
+    except NotFoundError:
+        return response_manager.error_404()
+    except (ConflictError, DatabaseError):
+        return response_manager.error_500(
+            {
+                "ru-RU": f"Группа '{group_title}' не была создана: проблемы с данными",
+                "en-US": f"The group '{group_title}' was not created: data problems"
+            }
+        )
+    except:
+        return response_manager.error_500(
+            {
+                "ru-RU": f"Что-то пошло не так, группа '{group_title}' не была создана",
+                "en-US": f"Something went wrong, and the '{group_title}' group was not created"
+            }
+        )

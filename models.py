@@ -38,4 +38,3 @@ class UserGroupModel(db.Model):
     tests = db.Column(db.JSON)
     users_limit = db.Column(db.Integer)
     admins_limit = db.Column(db.Integer)
-
