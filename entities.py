@@ -7,7 +7,7 @@ from service.test_data_processor import TestDataProcessor
 import json
 from datetime import datetime
 class User():
-    def __init__(self, user_id=None):
+    def __init__(self, user_id=None, access_token=None):
         self.id = None
         self.name = None
         self.groups_admin_of = []
@@ -19,10 +19,12 @@ class User():
         self.refresh_token = None
         self.token_expiry = None
         if user_id:
-            self.create_with_id(user_id)
+            self.create_with_id(str(user_id))
+        elif access_token:
+            self.create_with_token(access_token)
     
     def create_with_id(self, user_id):
-        user_data = UserModel.query.get(user_id)
+        user_data = UserModel.query.get(str(user_id))
         if user_data:
             self.id = user_data.id
             self.name = user_data.name
@@ -41,9 +43,7 @@ class User():
     def create_with_token(self, access_token):
         if not access_token:
             return False
-        
         user_data = UserModel.query.filter_by(access_token=access_token).first()
-        
         if user_data:
             self.id = user_data.id
             self.name = user_data.name
@@ -109,9 +109,11 @@ class User():
     def delete_group_from_lists(self, group_id):
         if group_id in self.groups_admin_of:
             self.delete_group_admin_of(group_id)
+            self.update_user_in_db()
             return True
         elif group_id in self.groups_user_of:
             self.delete_group_user_of(group_id)
+            self.update_user_in_db()
             return True
         else:
             return False
@@ -143,7 +145,7 @@ class User():
 
 
 class Group():
-    def __init__(self):
+    def __init__(self, group_id=None):
         self.id = None
         self.title = ''
         self.size = 0
@@ -152,6 +154,8 @@ class Group():
         self.users = []
         self.users_limit = 100
         self.admins_limit = 10
+        if group_id:
+            self.create_with_id(group_id)
 
     def create_new(self, title, first_admin_id):
         self.title = title
@@ -273,16 +277,13 @@ class Group():
         else:
             try:
                 for i in self.users:
-                    user = User()
-                    user.create_with_id(i)
-                    user.delete_group_user_of(self.id)
+                    user = User(user_id=i)
+                    user.delete_group_from_lists(self.id)
                 for j in self.admins:
-                    user = User()
-                    user.create_with_id(j)
-                    user.delete_group_admin_of(self.id)
+                    user = User(user_id=j)
+                    user.delete_group_from_lists(self.id)
                 for k in self.tests:
-                    test = Test()
-                    test.create_with_id(k)
+                    test = Test(test_id=k)
                     test.delete_for_group(self.id)
                 group_to_delete = UserGroupModel.query.get(self.id)
                 db.session.delete(group_to_delete)
@@ -369,7 +370,7 @@ class Group():
 
 
 class Test():
-    def __init__(self):
+    def __init__(self, test_id=None):
         self.id = None
         self.title = ''
         self.description = ''
@@ -379,6 +380,8 @@ class Test():
         self.answers = []
         self.users_max_score = []
         self.users_attempts = []
+        if test_id is not None:
+            self.create_with_id(test_id)
 
     def create_new(self, test_data: dict):
         try:
@@ -524,8 +527,7 @@ class Test():
             test_to_delete = TestModel.query.get(self.id)
             db.session.delete(test_to_delete)
             for i in self.groups:
-                group_with_this_test = Group()
-                group_with_this_test.create_with_id(i)
+                group_with_this_test = Group(group_id=i)
                 group_with_this_test.delete_test(self.id)
                 group_with_this_test.update_group_in_db()
             db.session.commit()

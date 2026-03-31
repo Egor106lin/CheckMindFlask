@@ -15,10 +15,8 @@ invites_bp = Blueprint('invite', __name__)
 @invites_bp.route('/generate/<int:group_id>', methods=['GET'])
 @login_required()
 def generate_invite_url(group_id):
-    group_to_change = Group()
-    group_to_change.create_with_id(group_id)
-    admin = User()
-    admin.create_with_token(request.cookies.get('access_token'))
+    group_to_change = Group(group_id=group_id)
+    admin = User(access_token=request.cookies.get('access_token'))
     if admin.id not in group_to_change.admins:
         return response_manager.error_403()
     else:
@@ -69,10 +67,8 @@ def accept_invite():
                     "en-US": "Invalid invitation"
                 }
             )
-        group = Group()
-        group.create_with_id(token_data['group_id'])
-        user = User()
-        user.create_with_token(request.cookies.get('access_token'))
+        group = Group(group_id=token_data['group_id'])
+        user = User(access_token=request.cookies.get('access_token'))
         if group.is_user(user.id):
             return response_manager.error_400(
                 {

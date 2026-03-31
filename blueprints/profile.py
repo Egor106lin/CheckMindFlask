@@ -1,4 +1,4 @@
-from flask import Blueprint, request, abort, g, make_response
+from flask import Blueprint, request, abort, g, make_response, jsonify
 
 from service.login_required import login_required
 from service.update_access_token import accessTokenUpdater
@@ -20,7 +20,7 @@ def refresh_token():
     if not new_token:
         return abort(401)
     
-    response = response_manager.success_200()
+    response = make_response(jsonify({"status": "ok"}))
     response.set_cookie(
         'access_token',
         new_token,
@@ -35,15 +35,17 @@ def refresh_token():
 @profile_bp.route('/user_data', methods=['GET'])
 @login_required()
 def profile_user_data():
-    user_data = User()
-    user_data.create_with_token(request.cookies.get('access_token'))
-    return response_manager.success_200(message=None, data={
-        "name": user_data.name,
-        "provider": user_data.provider,
-        "avatar_url": user_data.avatar_url,
-        "email": user_data.email,
-        "id": user_data.id
-    })
+    try:
+        user_data = User(access_token=request.cookies.get('access_token'))
+        return response_manager.success_200(message=None, data={
+            "name": user_data.name,
+            "provider": user_data.provider,
+            "avatar_url": user_data.avatar_url,
+            "email": user_data.email,
+            "id": user_data.id
+        })
+    except Exception as e:
+        return response_manager.error_500()
 
 
 @profile_bp.route('/leave', methods=['GET'])
@@ -58,19 +60,16 @@ def profile_leave():
 @login_required()
 def profile_delete():
     try:
-        user = User()
-        if user.create_with_token(request.cookies.get('access_token')):
-            for i in user.groups_admin_of:
-                group = Group()
-                if group.create_with_id(i):
-                    group.delete_person(user.id)
-            for j in user.groups_user_of:
-                group = Group()
-                if group.create_with_id(j):
-                    group.delete_user(user.id)
-            if user.delete_from_db():
-                return response_manager.success_200()
-            else:
-                return response_manager.error_500()
+        user = User(access_token=request.cookies.get('access_token'))
+        for i in user.groups_admin_of:
+            group = Group(group_id=i)
+            group.delete_person(user.id)
+        for j in user.groups_user_of:
+            group = Group(group_id=j)
+            group.delete_user(user.id)
+        if user.delete_from_db():
+            return response_manager.success_200()
+        else:
+            return response_manager.error_500()
     except:
         return response_manager.error_500()
