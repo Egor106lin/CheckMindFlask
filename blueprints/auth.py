@@ -4,6 +4,7 @@ from service.generate_links import generate_google_url, generate_vk_url
 from service.config import config
 from service.jwt_service import jwt_decode
 from service.create_user import create_user
+from service.response_manager import response_manager
 
 import requests
 
@@ -21,9 +22,10 @@ def get_url_vk():
     state = request.args.get('state', '')
     code_challenge = request.args.get('code_challenge')
     if not code_challenge:
-        return jsonify(
-            {"error": "Missing code_challenge"}
-        ), 500
+        return response_manager.error_400({
+            "ru-RU": "Нет нужного кода",
+            "en-US": "Missing code"
+        })
     url = generate_vk_url(code_challenge=code_challenge, state=state)
     return url
 
@@ -58,7 +60,7 @@ def auth_google():
             path='/'
         )
         return response
-    except Exception as e:
+    except:
         return redirect(f"{config.FRONTEND_URL}/login?error=auth_failed")
     
 
@@ -122,7 +124,7 @@ def exchange_vk_code():
         )
         return response
 
-    except requests.exceptions.RequestException as e:
-        return jsonify({"error": "Failed to exchange code"}), 500
-    except Exception as e:
-        return jsonify({"error": "Authentication failed"}), 500
+    except requests.exceptions.RequestException:
+        return response_manager.error_500()
+    except:
+        return response_manager.error_500()

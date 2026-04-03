@@ -15,19 +15,13 @@ def test_created_test():
     try:
         data = request.get_json()
         if not data:
-            raise ValidationError({
-                "ru-RU": "Не переданы данные теста",
-                "en-US": "Test data not provided"
-            })
+            raise ValidationError()
         new_test = Test()
         new_test.create_new(data)
         user = User(access_token=request.cookies.get('access_token'))
         group_id = data.get('groupID')
         if not group_id:
-            raise ValidationError({
-                "ru-RU": "Не указан ID группы",
-                "en-US": "Group ID not provided"
-            })
+            raise ValidationError()
         group = Group(group_id=group_id)
         if not group.is_admin(user.id):
             raise PermissionDeniedError()
@@ -54,10 +48,7 @@ def test_questions_and_options():
     try:
         request_data = request.get_json()
         if not request_data or 'params' not in request_data or 'test_id' not in request_data['params']:
-            raise ValidationError({
-                "ru-RU": "Неверный формат запроса",
-                "en-US": "Invalid request format"
-            })
+            raise ValidationError()
         test_id = request_data['params']['test_id']
         user = g.user
         test = Test(test_id=test_id)
@@ -99,10 +90,7 @@ def test_check_answers():
     try:
         data = request.get_json()
         if not data or 'test_id' not in data or 'user_answers' not in data:
-            raise ValidationError({
-                "ru-RU": "Неверный формат запроса",
-                "en-US": "Invalid request format"
-            })
+            raise ValidationError()
         test = Test(test_id=data['test_id'])
         user = User(access_token=request.cookies.get('access_token'))
         result = test.check_answers(data['user_answers'], user.name)
@@ -124,10 +112,7 @@ def test_delete():
     try:
         data = request.get_json()
         if not data or 'test_id' not in data:
-            raise ValidationError({
-                "ru-RU": "Не указан ID теста",
-                "en-US": "Test ID not provided"
-            })
+            raise ValidationError()
         test = Test(test_id=data['test_id'])
         test.delete_test()
         return response_manager.success_200(
@@ -152,11 +137,7 @@ def test_archive():
     try:
         data = request.get_json()
         if not data or 'test_id' not in data:
-            raise ValidationError({
-                "ru-RU": "Не указан ID теста",
-                "en-US": "Test ID not provided"
-            })
-
+            raise ValidationError()
         test = Test(test_id=data['test_id'])
         test.archive_test()
         return response_manager.success_200(
@@ -179,10 +160,7 @@ def test_dearchive():
     try:
         data = request.get_json()
         if not data or 'test_id' not in data:
-            raise ValidationError({
-                "ru-RU": "Не указан ID теста",
-                "en-US": "Test ID not provided"
-            })
+            raise ValidationError()
         test = Test(test_id=data['test_id'])
         test.dearchive_test()
         return response_manager.success_200(

@@ -3,6 +3,7 @@ from flask import Blueprint, request, abort, g, make_response, jsonify
 from service.login_required import login_required
 from service.update_access_token import accessTokenUpdater
 from service.response_manager import response_manager
+from service.exceptions import *
 
 from entities import User, Group
 
@@ -44,7 +45,12 @@ def profile_user_data():
             "email": user_data.email,
             "id": user_data.id
         })
-    except Exception as e:
+    except NotFoundError:
+        return response_manager.error_404({
+            'ru-RU': 'Данные пользователя не были найдены',
+            'en-EN': 'User data was not found'
+        })
+    except:
         return response_manager.error_500()
 
 
@@ -62,14 +68,21 @@ def profile_delete():
     try:
         user = User(access_token=request.cookies.get('access_token'))
         for i in user.groups_admin_of:
-            group = Group(group_id=i)
-            group.delete_person(user.id)
+            try:
+                group = Group(group_id=i)
+                group.delete_person(user.id)
+            except (ValidationError, NotFoundError):
+                continue
+            except DatabaseError:
+                return response_manager.error_500()
         for j in user.groups_user_of:
             group = Group(group_id=j)
             group.delete_user(user.id)
-        if user.delete_from_db():
-            return response_manager.success_200()
-        else:
-            return response_manager.error_500()
+        user.delete_from_db()
+        return response_manager.success_200()
+    except NotFoundError:
+        return response_manager.error_404()
+    except DatabaseError:
+        return response_manager.error_500()
     except:
         return response_manager.error_500()

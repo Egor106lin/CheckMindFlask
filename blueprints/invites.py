@@ -5,6 +5,7 @@ from service.jwt_service import jwt_encode
 from service.login_required import login_required
 from service.config import config
 from service.response_manager import response_manager
+from service.exceptions import *
 
 from datetime import datetime, timedelta
 import jwt
@@ -15,31 +16,38 @@ invites_bp = Blueprint('invite', __name__)
 @invites_bp.route('/generate/<int:group_id>', methods=['GET'])
 @login_required()
 def generate_invite_url(group_id):
-    group_to_change = Group(group_id=group_id)
-    admin = User(access_token=request.cookies.get('access_token'))
-    if admin.id not in group_to_change.admins:
-        return response_manager.error_403()
-    else:
-        expire_in = timedelta(days=1)
-        expire_timestamp = int((datetime.now() + expire_in).timestamp())
-        invite_data = {
-            'group_id': group_id,
-            'exp': expire_timestamp,
-            'created_by_name': admin.name,
-            'created_by_email': admin.email,
-            'purpose': 'group_join'
-        }
-        token = jwt_encode(invite_data)
-        invite_url = f"{config.FRONTEND_URL}/join?token={token}"
-        return response_manager.success_200(
-            {
-                "ru-RU": "Ссылка успешно скопирована",
-                "en-US": "The link has been copied successfully"
-            },
-            {
-                "inviteUrl": invite_url
+    try:
+        group_to_change = Group(group_id=group_id)
+        admin = User(access_token=request.cookies.get('access_token'))
+        if not group_to_change.is_admin(admin.id):
+            return PermissionDeniedError()
+        else:
+            expire_in = timedelta(days=1)
+            expire_timestamp = int((datetime.now() + expire_in).timestamp())
+            invite_data = {
+                'group_id': group_id,
+                'exp': expire_timestamp,
+                'created_by_name': admin.name,
+                'created_by_email': admin.email,
+                'purpose': 'group_join'
             }
-        )
+            token = jwt_encode(invite_data)
+            invite_url = f"{config.FRONTEND_URL}/join?token={token}"
+            return response_manager.success_200(
+                {
+                    "ru-RU": "Ссылка успешно скопирована",
+                    "en-US": "The link has been copied successfully"
+                },
+                {
+                    "inviteUrl": invite_url
+                }
+            )
+    except NotFoundError:
+        return response_manager.error_404()
+    except PermissionDeniedError:
+        return response_manager.error_403()
+    except:
+        return response_manager.error_500()
 
 
 @invites_bp.route('/accept', methods=['POST'])
@@ -83,16 +91,19 @@ def accept_invite():
                     "en-US": "Are you already an admin of this group"
                 }
             )
-        elif group.add_user(user) and user.add_group_user_of(group.id):
-            res = {
-                "title": group.title,
-                "name": token_data['created_by_name'],
-                "email": token_data['created_by_email']
-            }
-            return response_manager.success_200(message=None, data={
-                "groupData": res
-            })
-        else:
-            return response_manager.error_500()
-    except Exception as e:
+        group.add_user(user)
+        user.add_group_user_of(group.id)
+        res = {
+            "title": group.title,
+            "name": token_data['created_by_name'],
+            "email": token_data['created_by_email']
+        }
+        return response_manager.success_200(message=None, data={
+            "groupData": res
+        })
+    except NotFoundError:
+        return response_manager.error_404()
+    except ConflictError:
+        return response_manager.error_500()
+    except:
         return response_manager.error_500()
